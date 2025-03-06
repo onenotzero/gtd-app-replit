@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { TaskStatus, type Task, type Email } from "@shared/schema";
+import { TaskStatus, type Task, type Email, type Context, type Project } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -13,31 +13,34 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
+
+type InsertTask = Omit<Task, 'id'>;
 
 export default function Inbox() {
   const { toast } = useToast();
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
-  const { data: tasks } = useQuery<Task[]>({
+  const { data: tasks = [] } = useQuery<Task[]>({
     queryKey: ["/api/tasks/status/inbox"],
   });
 
-  const { data: contexts } = useQuery({
+  const { data: contexts = [] } = useQuery<Context[]>({
     queryKey: ["/api/contexts"],
   });
 
-  const { data: projects } = useQuery({
+  const { data: projects = [] } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
   });
 
-  const { data: emails } = useQuery<Email[]>({
+  const { data: emails = [] } = useQuery<Email[]>({
     queryKey: ["/api/emails"],
   });
 
   const createTask = useMutation({
-    mutationFn: async (task) => {
+    mutationFn: async (task: InsertTask) => {
       const res = await apiRequest("POST", "/api/tasks", task);
       return res.json();
     },
@@ -52,8 +55,9 @@ export default function Inbox() {
   });
 
   const updateTask = useMutation({
-    mutationFn: async ({ id, ...task }) => {
-      const res = await apiRequest("PATCH", `/api/tasks/${id}`, task);
+    mutationFn: async (task: Task) => {
+      const { id, ...data } = task;
+      const res = await apiRequest("PATCH", `/api/tasks/${id}`, data);
       return res.json();
     },
     onSuccess: () => {
@@ -120,7 +124,7 @@ export default function Inbox() {
         <div>
           <h3 className="text-xl font-semibold mb-4">Tasks</h3>
           <TaskList
-            tasks={tasks || []}
+            tasks={tasks}
             contexts={contexts}
             projects={projects}
             onEdit={handleEditTask}
@@ -131,7 +135,7 @@ export default function Inbox() {
         <div>
           <h3 className="text-xl font-semibold mb-4">Emails</h3>
           <EmailInbox
-            emails={emails || []}
+            emails={emails}
             onProcess={handleEmailProcess}
           />
         </div>
@@ -143,13 +147,16 @@ export default function Inbox() {
             <DialogTitle>
               {selectedTask ? "Edit Task" : "Create Task"}
             </DialogTitle>
+            <DialogDescription>
+              Enter the details for your task below.
+            </DialogDescription>
           </DialogHeader>
           <TaskForm
             onSubmit={(data) => {
               if (selectedTask) {
                 updateTask.mutate({ ...data, id: selectedTask.id });
               } else {
-                createTask.mutate(data);
+                createTask.mutate({ ...data, status: TaskStatus.INBOX });
               }
             }}
             defaultValues={selectedTask || undefined}
