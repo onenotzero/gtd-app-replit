@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertTaskSchema, insertProjectSchema, insertContextSchema } from "@shared/schema";
+import { EmailService } from "./services/email";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -86,15 +87,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendStatus(204);
   });
 
-  // Mock Emails
+  // Enhanced Email Routes
   app.get("/api/emails", async (req, res) => {
-    const emails = await storage.getEmails();
-    res.json(emails);
+    try {
+      await EmailService.fetchEmails();
+      const emails = await storage.getEmails();
+      res.json(emails);
+    } catch (error) {
+      console.error('Error fetching emails:', error);
+      res.status(500).json({ message: 'Failed to fetch emails' });
+    }
   });
 
   app.post("/api/emails/:id/process", async (req, res) => {
-    const email = await storage.markEmailAsProcessed(Number(req.params.id));
-    res.json(email);
+    try {
+      const email = await storage.markEmailAsProcessed(Number(req.params.id));
+      await EmailService.markEmailAsRead(email.messageId);
+      res.json(email);
+    } catch (error) {
+      console.error('Error processing email:', error);
+      res.status(500).json({ message: 'Failed to process email' });
+    }
+  });
+
+  app.post("/api/emails/send", async (req, res) => {
+    try {
+      const { to, subject, text, html } = req.body;
+      await EmailService.sendEmail(to, subject, text, html);
+      res.json({ message: 'Email sent successfully' });
+    } catch (error) {
+      console.error('Error sending email:', error);
+      res.status(500).json({ message: 'Failed to send email' });
+    }
   });
 
   const httpServer = createServer(app);
