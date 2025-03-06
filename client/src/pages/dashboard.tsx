@@ -1,27 +1,27 @@
 import { useQuery } from "@tanstack/react-query";
-import { Task, TaskStatus } from "@shared/schema";
+import { Task, TaskStatus, type Context, type Project } from "@shared/schema";
 import TaskList from "@/components/task-list";
 
 export default function Dashboard() {
-  const { data: tasks } = useQuery<Task[]>({ 
+  const { data: tasks = [] } = useQuery<Task[]>({ 
     queryKey: ["/api/tasks"],
   });
 
-  const { data: contexts } = useQuery({ 
+  const { data: contexts = [] } = useQuery<Context[]>({ 
     queryKey: ["/api/contexts"],
   });
 
-  const { data: projects } = useQuery({ 
+  const { data: projects = [] } = useQuery<Project[]>({ 
     queryKey: ["/api/projects"],
   });
 
-  const nextActions = tasks?.filter(
+  const nextActions = tasks.filter(
     (task) => task.status === TaskStatus.NEXT_ACTION
-  ) || [];
+  );
 
-  const waiting = tasks?.filter(
+  const waiting = tasks.filter(
     (task) => task.status === TaskStatus.WAITING
-  ) || [];
+  );
 
   return (
     <div className="space-y-8">

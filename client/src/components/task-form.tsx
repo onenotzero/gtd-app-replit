@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertTaskSchema, type InsertTask } from "@shared/schema";
+import { insertTaskSchema, type InsertTask, type Context, type Project } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -39,11 +39,11 @@ export default function TaskForm({ onSubmit, defaultValues }: TaskFormProps) {
     },
   });
 
-  const { data: contexts } = useQuery({ 
+  const { data: contexts = [] } = useQuery<Context[]>({ 
     queryKey: ["/api/contexts"],
   });
 
-  const { data: projects } = useQuery({ 
+  const { data: projects = [] } = useQuery<Project[]>({ 
     queryKey: ["/api/projects"],
   });
 
@@ -71,7 +71,7 @@ export default function TaskForm({ onSubmit, defaultValues }: TaskFormProps) {
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Textarea {...field} />
+                <Textarea {...field} value={field.value || ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -94,7 +94,7 @@ export default function TaskForm({ onSubmit, defaultValues }: TaskFormProps) {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {contexts?.map((context) => (
+                  {contexts.map((context) => (
                     <SelectItem key={context.id} value={context.id.toString()}>
                       {context.name}
                     </SelectItem>
@@ -122,7 +122,7 @@ export default function TaskForm({ onSubmit, defaultValues }: TaskFormProps) {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {projects?.map((project) => (
+                  {projects.map((project) => (
                     <SelectItem key={project.id} value={project.id.toString()}>
                       {project.name}
                     </SelectItem>
