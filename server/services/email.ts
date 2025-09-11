@@ -7,9 +7,9 @@ import { storage } from '../storage';
 // Email configuration
 const config = {
   imap: {
-    user: process.env.EMAIL_ADDRESS,
-    password: process.env.EMAIL_PASSWORD,
-    host: process.env.IMAP_HOST,
+    user: process.env.EMAIL_ADDRESS?.trim(),
+    password: process.env.EMAIL_PASSWORD?.trim(),
+    host: process.env.IMAP_HOST?.trim(),
     port: parseInt(process.env.IMAP_PORT || '993'),
     tls: true,
     tlsOptions: { rejectUnauthorized: false }
@@ -17,12 +17,12 @@ const config = {
 };
 
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
+  host: process.env.SMTP_HOST?.trim(),
   port: parseInt(process.env.SMTP_PORT || '587'),
   secure: false,
   auth: {
-    user: process.env.EMAIL_ADDRESS,
-    pass: process.env.EMAIL_PASSWORD,
+    user: process.env.EMAIL_ADDRESS?.trim(),
+    pass: process.env.EMAIL_PASSWORD?.trim(),
   },
 });
 
