@@ -33,6 +33,8 @@ export interface IStorage {
   // Emails
   getEmails(): Promise<Email[]>;
   createEmail(email: InsertEmail): Promise<Email>;
+  updateEmail(id: number, email: Partial<Email>): Promise<Email>;
+  deleteEmail(id: number): Promise<void>;
   markEmailAsProcessed(id: number): Promise<Email>;
 }
 
@@ -169,6 +171,18 @@ export class MemStorage implements IStorage {
     const newEmail = { ...email, id } as Email;
     this.emails.set(id, newEmail);
     return newEmail;
+  }
+
+  async updateEmail(id: number, email: Partial<Email>): Promise<Email> {
+    const existing = this.emails.get(id);
+    if (!existing) throw new Error("Email not found");
+    const updated = { ...existing, ...email };
+    this.emails.set(id, updated);
+    return updated;
+  }
+
+  async deleteEmail(id: number): Promise<void> {
+    this.emails.delete(id);
   }
 
   async markEmailAsProcessed(id: number): Promise<Email> {

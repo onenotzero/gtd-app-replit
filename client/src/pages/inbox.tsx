@@ -4,26 +4,23 @@ import { TaskStatus, type Task, type Email, type Context, type Project } from "@
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import TaskList from "@/components/task-list";
-import TaskForm from "@/components/task-form";
-import EmailInbox from "@/components/email-inbox";
+import ProcessingDialog, { type ProcessingResult } from "@/components/processing-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Inbox as InboxIcon } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { Inbox as InboxIcon, Mail, CheckSquare, Paperclip } from "lucide-react";
+import { format } from "date-fns";
 
-type InsertTask = Omit<Task, 'id'>;
+type InboxItem = {
+  id: string;
+  type: "task" | "email";
+  data: Task | Email;
+  timestamp: Date;
+};
 
 export default function Inbox() {
   const { toast } = useToast();
-  const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isProcessingDialogOpen, setIsProcessingDialogOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<InboxItem | null>(null);
 
   const { data: tasks = [] } = useQuery<Task[]>({
     queryKey: ["/api/tasks/status/inbox"],
@@ -41,94 +38,127 @@ export default function Inbox() {
     queryKey: ["/api/emails"],
   });
 
-  const createTask = useMutation({
-    mutationFn: async (task: InsertTask) => {
-      const res = await apiRequest("POST", "/api/tasks", task);
-      return res.json();
+  const unprocessedEmails = emails.filter((e) => !e.processed);
+
+  const processItem = useMutation({
+    mutationFn: async (result: ProcessingResult & { itemId: number; itemType: "task" | "email" }) => {
+      const { action, task, createProject, itemId, itemType } = result;
+
+      if (action === "trash") {
+        if (itemType === "task") {
+          await apiRequest("DELETE", `/api/tasks/${itemId}`);
+        } else {
+          await apiRequest("DELETE", `/api/emails/${itemId}`);
+        }
+      } else if (action === "reference") {
+        if (itemType === "task") {
+          const updates: Partial<Task> = { 
+            status: TaskStatus.REFERENCE,
+            ...( task?.referenceCategory && { referenceCategory: task.referenceCategory })
+          };
+          await apiRequest("PATCH", `/api/tasks/${itemId}`, updates);
+        } else {
+          await apiRequest("PATCH", `/api/emails/${itemId}`, { processed: true });
+        }
+      } else if (action === "someday") {
+        if (itemType === "task") {
+          const updates: Partial<Task> = { 
+            status: TaskStatus.SOMEDAY,
+            ...(task?.notes && { notes: task.notes })
+          };
+          await apiRequest("PATCH", `/api/tasks/${itemId}`, updates);
+        } else {
+          await apiRequest("PATCH", `/api/emails/${itemId}`, { processed: true });
+        }
+      } else if (action === "do-now") {
+        if (itemType === "task") {
+          await apiRequest("PATCH", `/api/tasks/${itemId}`, { status: TaskStatus.DONE });
+        } else {
+          await apiRequest("PATCH", `/api/emails/${itemId}`, { processed: true });
+        }
+      } else if (action === "delegate" || action === "next-action") {
+        if (createProject) {
+          const projectRes = await apiRequest("POST", "/api/projects", {
+            name: createProject.name,
+            description: createProject.description,
+            isActive: true,
+          });
+          const project = await projectRes.json();
+          if (task) {
+            task.projectId = project.id;
+          }
+        }
+
+        if (itemType === "email") {
+          await apiRequest("POST", "/api/tasks", task);
+          await apiRequest("POST", `/api/emails/${itemId}/process`);
+        } else {
+          await apiRequest("PATCH", `/api/tasks/${itemId}`, task);
+        }
+      } else if (action === "defer") {
+        if (itemType === "task") {
+          const currentTask = tasks.find((t) => t.id === itemId);
+          await apiRequest("PATCH", `/api/tasks/${itemId}`, {
+            deferCount: (currentTask?.deferCount || 0) + 1,
+          });
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
       queryClient.invalidateQueries({ queryKey: ["/api/tasks/status/inbox"] });
-      setIsTaskDialogOpen(false);
-      toast({
-        title: "Task created",
-        description: "Task has been added to your inbox",
-      });
-    },
-  });
-
-  const updateTask = useMutation({
-    mutationFn: async (task: Task) => {
-      const { id, ...data } = task;
-      const res = await apiRequest("PATCH", `/api/tasks/${id}`, data);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks/status/inbox"] });
-      setIsTaskDialogOpen(false);
-      setSelectedTask(null);
-      toast({
-        title: "Task updated",
-        description: "Changes have been saved",
-      });
-    },
-  });
-
-  const deleteTask = useMutation({
-    mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/tasks/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks/status/inbox"] });
-      toast({
-        title: "Task deleted",
-        description: "Task has been removed",
-      });
-    },
-  });
-
-  const processEmail = useMutation({
-    mutationFn: async (id: number) => {
-      const res = await apiRequest("POST", `/api/emails/${id}/process`);
-      return res.json();
-    },
-    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/emails"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks/status/inbox"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       toast({
-        title: "Email processed",
-        description: "Email has been marked as processed",
+        title: "Item processed",
+        description: "Item has been processed successfully",
       });
     },
   });
 
-  const handleEmailProcess = (email: Email) => {
-    setIsTaskDialogOpen(true);
-    processEmail.mutate(email.id);
+  const handleProcess = (item: InboxItem) => {
+    setSelectedItem(item);
+    setIsProcessingDialogOpen(true);
   };
 
-  const handleEditTask = (task: Task) => {
-    setSelectedTask(task);
-    setIsTaskDialogOpen(true);
+  const handleProcessingComplete = (result: ProcessingResult) => {
+    if (selectedItem) {
+      const itemId = selectedItem.type === "task" 
+        ? (selectedItem.data as Task).id 
+        : (selectedItem.data as Email).id;
+      
+      processItem.mutate({
+        ...result,
+        itemId,
+        itemType: selectedItem.type,
+      });
+    }
   };
 
-  const totalUnprocessed = tasks.length + emails.filter(e => !e.processed).length;
+  const inboxItems: InboxItem[] = [
+    ...tasks.map((task) => ({
+      id: `task-${task.id}`,
+      type: "task" as const,
+      data: task,
+      timestamp: new Date(),
+    })),
+    ...unprocessedEmails.map((email) => ({
+      id: `email-${email.id}`,
+      type: "email" as const,
+      data: email,
+      timestamp: new Date(email.receivedAt),
+    })),
+  ].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+
+  const totalUnprocessed = inboxItems.length;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Inbox</h2>
-          <p className="text-muted-foreground">
-            Process {totalUnprocessed} {totalUnprocessed === 1 ? 'item' : 'items'}
-          </p>
-        </div>
-        <Button onClick={() => setIsTaskDialogOpen(true)} data-testid="button-add-task">
-          Add Task
-        </Button>
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">Inbox</h2>
+        <p className="text-muted-foreground">
+          Process {totalUnprocessed} {totalUnprocessed === 1 ? 'item' : 'items'}
+        </p>
       </div>
 
       {totalUnprocessed === 0 && (
@@ -143,53 +173,89 @@ export default function Inbox() {
         </Card>
       )}
 
-      <div className="space-y-6">
-        {tasks.length > 0 && (
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Tasks to Process</h3>
-            <TaskList
-              tasks={tasks}
-              contexts={contexts}
-              projects={projects}
-              onEdit={handleEditTask}
-              onDelete={(id) => deleteTask.mutate(id)}
-            />
-          </div>
-        )}
+      <div className="space-y-3">
+        {inboxItems.map((item) => {
+          const isTask = item.type === "task";
+          const task = isTask ? (item.data as Task) : null;
+          const email = !isTask ? (item.data as Email) : null;
 
-        {emails.filter(e => !e.processed).length > 0 && (
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Emails to Process</h3>
-            <EmailInbox
-              emails={emails}
-              onProcess={handleEmailProcess}
-            />
-          </div>
-        )}
+          return (
+            <Card key={item.id} className="hover:bg-accent/50 transition-colors">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-4">
+                  <div className="mt-1">
+                    {isTask ? (
+                      <CheckSquare className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <Mail className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold truncate">
+                          {isTask ? task?.title : email?.subject}
+                        </h3>
+                        {!isTask && email && (
+                          <p className="text-sm text-muted-foreground">
+                            {email.sender}
+                          </p>
+                        )}
+                        {!isTask && email?.content && (
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                            {email.content.substring(0, 150)}...
+                          </p>
+                        )}
+                        {isTask && task?.description && (
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                            {task.description}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                          <span>
+                            {format(item.timestamp, "MMM d, yyyy")}
+                          </span>
+                          {!isTask && email?.attachments && email.attachments.length > 0 && (
+                            <span className="flex items-center gap-1">
+                              <Paperclip className="h-3 w-3" />
+                              {email.attachments.length}
+                            </span>
+                          )}
+                          {isTask && task?.deferCount && task.deferCount > 0 && (
+                            <span className="text-orange-600">
+                              Deferred {task.deferCount}x
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <Button
+                        onClick={() => handleProcess(item)}
+                        size="sm"
+                        data-testid={`button-process-${item.id}`}
+                      >
+                        Process
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
-      <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {selectedTask ? "Edit Task" : "Create Task"}
-            </DialogTitle>
-            <DialogDescription>
-              Enter the details for your task below.
-            </DialogDescription>
-          </DialogHeader>
-          <TaskForm
-            onSubmit={(data) => {
-              if (selectedTask) {
-                updateTask.mutate({ ...data, id: selectedTask.id });
-              } else {
-                createTask.mutate({ ...data, status: TaskStatus.INBOX });
-              }
-            }}
-            defaultValues={selectedTask || undefined}
-          />
-        </DialogContent>
-      </Dialog>
+      {selectedItem && (
+        <ProcessingDialog
+          open={isProcessingDialogOpen}
+          onOpenChange={setIsProcessingDialogOpen}
+          item={{ ...selectedItem.data, type: selectedItem.type }}
+          contexts={contexts}
+          projects={projects}
+          onProcess={handleProcessingComplete}
+        />
+      )}
     </div>
   );
 }

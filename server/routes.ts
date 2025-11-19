@@ -110,6 +110,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/emails/:id", async (req, res) => {
+    try {
+      const email = await storage.updateEmail(Number(req.params.id), req.body);
+      if (req.body.processed) {
+        await EmailService.markEmailAsRead(email.messageId);
+      }
+      res.json(email);
+    } catch (error) {
+      console.error('Error updating email:', error);
+      res.status(500).json({ message: 'Failed to update email' });
+    }
+  });
+
+  app.delete("/api/emails/:id", async (req, res) => {
+    try {
+      await storage.deleteEmail(Number(req.params.id));
+      res.sendStatus(204);
+    } catch (error) {
+      console.error('Error deleting email:', error);
+      res.status(500).json({ message: 'Failed to delete email' });
+    }
+  });
+
   app.post("/api/emails/send", async (req, res) => {
     try {
       const { to, subject, text, html } = req.body;

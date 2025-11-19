@@ -1,0 +1,253 @@
+# GTD Unprocessed Items Workflow Specification
+
+## Overview
+Software implementation of GTD's "Clarify" phase for processing inbox items into actionable outcomes.
+
+---
+
+## 1. Inbox Display
+
+### Requirements
+- **Inbox View**: Single consolidated list showing all unprocessed items
+- **Item Count Badge**: Always-visible count of unprocessed items
+- **Sort Order**: FIFO (First In, First Out) by default
+- **One-at-a-time Processing**: Display single item in focus mode (optional setting)
+- **No Escaping**: Cannot navigate away without processing or explicitly deferring
+
+### Visual Indicators
+- Unprocessed item count on main navigation
+- Age indicator (items >48 hours highlighted)
+- Source tag (email, voice note, quick capture, etc.)
+
+---
+
+## 2. Processing Decision Tree
+
+### UI Flow: Sequential Forced-Choice Interface
+
+**Question 1: "Is it actionable?"**
+```
+[YES] → Continue to Question 2
+[NO] → Branch to Non-Actionable Path
+```
+
+---
+
+### Path A: Non-Actionable Items
+
+**Question 2A: "What is it?"**
+```
+[TRASH] → Delete permanently
+[REFERENCE] → Move to Reference system
+  ↳ Prompt: Category/Tag (optional)
+  ↳ Action: Archive with metadata
+[SOMEDAY/MAYBE] → Move to Someday/Maybe list
+  ↳ Prompt: Add note (optional)
+  ↳ Action: Store with review flag
+```
+
+**Processing Result**: Item removed from inbox, routed to appropriate system
+
+---
+
+### Path B: Actionable Items
+
+**Question 2B: "What's the next action?"**
+
+**Required Field**: Text input for specific, physical, visible next action
+- **Validation**: Starts with verb (suggested: call, email, write, review, buy, etc.)
+- **Helper Text**: "What's the very next physical thing you need to do?"
+- **Examples Shown**: "Call John re: budget" NOT "Budget discussion"
+
+**Question 3: "Will it take less than 2 minutes?"**
+```
+[YES - DO IT NOW] → 
+  ↳ Provide "Mark as Done" button
+  ↳ Timer starts (optional)
+  ↳ Complete → Remove from inbox
+  
+[NO] → Continue to Question 4
+```
+
+**Question 4: "Are you the right person to do this?"**
+```
+[NO - DELEGATE] →
+  ↳ Required: Assign to person
+  ↳ Required: Set follow-up date
+  ↳ Action: Move to "Waiting For" list
+  ↳ Optional: Add to calendar
+  
+[YES] → Continue to Question 5
+```
+
+**Question 5: "Is this part of a bigger outcome?"**
+```
+[YES - PROJECT] →
+  ↳ Required: Project name
+  ↳ Optional: Project goal/outcome description
+  ↳ Action: Create project, add this as first next action
+  ↳ Prompt: "Capture other known actions?" (optional multi-add)
+  
+[NO - SINGLE ACTION] →
+  ↳ Continue to Organize step
+```
+
+---
+
+## 3. Organize Step (for Single Actions & Project Actions)
+
+### Required Fields
+**Context/Location** (Where can this be done?)
+- Dropdown/tags: @Computer, @Phone, @Office, @Home, @Errands, @Anywhere, [Custom]
+- Multi-select allowed
+
+**Priority/Energy** (Optional but recommended)
+- High/Medium/Low OR
+- Energy required: High focus/Medium/Low energy
+
+### Optional Fields
+**Due Date**
+- Date picker
+- Default: None (GTD principle: most actions don't have hard deadlines)
+- Flag if this is a true deadline vs. target date
+
+**Time Required**
+- Estimate: 15min, 30min, 1hr, 2hr+
+- Used for filtering by available time
+
+**Calendar Scheduling**
+- Option to add to calendar if specific date/time needed
+- Distinguish between "Do on date" vs. "Reminder on date"
+
+**Tags**
+- Additional custom tags beyond context
+- Examples: client names, categories, themes
+
+---
+
+## 4. Processing Completion
+
+### After Each Item Processed
+```
+✓ Item removed from inbox
+✓ Routed to appropriate list:
+  - Next Actions (by context)
+  - Projects
+  - Waiting For
+  - Someday/Maybe
+  - Reference
+  - Trash
+  
+→ Immediately show next unprocessed item
+→ Update inbox count
+→ Optional: Show progress ("3 of 47 processed")
+```
+
+### Batch Processing Mode (Optional)
+- "Process Inbox" dedicated mode
+- Keyboard shortcuts for rapid processing
+- Undo last classification (one level)
+- "Defer" button to skip item temporarily (flags for end of session)
+
+---
+
+## 5. Defer/Skip Handling
+
+### "I'll Decide Later" Option
+- **Button**: "Skip for Now"
+- **Action**: Move to end of inbox queue
+- **Flag**: Mark as "deferred" with count
+- **Warning**: If item skipped 3+ times, show alert:
+  - "This item has been deferred 3 times. Is it really actionable?"
+  - Force decision: Delete, Someday/Maybe, or Process Now
+
+---
+
+## 6. Smart Suggestions (Optional Enhancement)
+
+### AI/ML Assisted Processing
+Based on historical patterns, suggest:
+- Likely context (90% of your "call" actions = @Phone)
+- Likely project association
+- Similar past actions
+- Typical time estimates for user
+
+**UI Requirement**: Suggestions never auto-fill, only offer one-click acceptance
+
+---
+
+## 7. Processing Session Management
+
+### Session Features
+- **Start Processing Button**: Launches focused inbox processing mode
+- **Progress Indicator**: Visual progress bar
+- **Time Tracking**: Optional session timer
+- **Interruption Handling**: Save state if user navigates away
+- **Completion Celebration**: Inbox Zero confirmation
+  - Simple, non-intrusive message: "Inbox processed ✓"
+  - Option to proceed to Weekly Review if all items processed
+
+---
+
+## 8. Edge Cases
+
+### Empty Required Fields
+- Cannot advance without answering required questions
+- Cannot save incomplete processing
+- Clear error messages: "Next action required" not "Invalid input"
+
+### Lost Context
+- "Need more information" option → Creates action "Get clarity on [item]"
+- Original item moved to Someday/Maybe with note
+
+### Multiple Actions Discovered
+- During project creation, allow rapid addition of multiple next actions
+- Quick-add interface without leaving processing flow
+
+---
+
+## 9. Accessibility Requirements
+
+### Keyboard Navigation
+- Tab through decision tree
+- Number keys for common choices (1=Actionable, 2=Not Actionable)
+- Enter to confirm
+- Esc to defer
+
+### Mobile Considerations
+- Swipe gestures for quick decisions
+- Voice input for next action description
+- Large touch targets for decision buttons
+
+---
+
+## 10. Data Validation Rules
+
+### Next Action Validation
+- Minimum 3 characters
+- Must contain at least one verb (soft warning if not)
+- Cannot contain only generic words ("stuff", "thing", "misc")
+
+### Project Names
+- Minimum 3 characters
+- Unique names recommended (warning if duplicate)
+
+---
+
+## Success Metrics
+
+- **Time to Process Item**: Average <30 seconds per item
+- **Inbox Zero Achievement Rate**: % of users reaching empty inbox weekly
+- **Defer Rate**: Items skipped <10% of total processed
+- **Abandonment Rate**: Users starting but not completing processing <15%
+
+---
+
+## Integration Points
+
+- Email → Inbox (import unprocessed emails)
+- Voice notes → Inbox (auto-transcribe)
+- Mobile quick capture → Inbox
+- Browser extension → Inbox
+- Calendar ← Output (scheduled actions)
+- Notification system ← Output (reminders for Waiting For items)

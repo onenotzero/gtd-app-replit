@@ -8,7 +8,23 @@ export const TaskStatus = {
   NEXT_ACTION: "next_action",
   WAITING: "waiting",
   SOMEDAY: "someday",
+  REFERENCE: "reference",
   DONE: "done",
+} as const;
+
+// Time estimates for tasks
+export const TimeEstimate = {
+  MINUTES_15: "15min",
+  MINUTES_30: "30min",
+  HOUR_1: "1hr",
+  HOURS_2_PLUS: "2hr+",
+} as const;
+
+// Energy levels for tasks
+export const EnergyLevel = {
+  HIGH: "high",
+  MEDIUM: "medium",
+  LOW: "low",
 } as const;
 
 // Email folder types
@@ -25,11 +41,18 @@ export const tasks = pgTable("tasks", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description"),
-  status: text("status", { enum: Object.values(TaskStatus) }).notNull().default(TaskStatus.INBOX),
+  status: text("status", { enum: Object.values(TaskStatus) as [string, ...string[]] }).notNull().default(TaskStatus.INBOX),
   projectId: integer("project_id").references(() => projects.id),
   contextId: integer("context_id").references(() => contexts.id),
   dueDate: timestamp("due_date"),
   emailId: integer("email_id").references(() => emails.id),
+  deferCount: integer("defer_count").notNull().default(0),
+  timeEstimate: text("time_estimate", { enum: Object.values(TimeEstimate) as [string, ...string[]] }),
+  energyLevel: text("energy_level", { enum: Object.values(EnergyLevel) as [string, ...string[]] }),
+  waitingFor: text("waiting_for"),
+  waitingForFollowUp: timestamp("waiting_for_follow_up"),
+  referenceCategory: text("reference_category"),
+  notes: text("notes"),
 });
 
 // Projects table
@@ -58,7 +81,7 @@ export const emails = pgTable("emails", {
   bcc: text("bcc").array(),
   content: text("content").notNull(),
   htmlContent: text("html_content"),
-  folder: text("folder", { enum: Object.values(EmailFolder) }).notNull().default(EmailFolder.INBOX),
+  folder: text("folder", { enum: Object.values(EmailFolder) as [string, ...string[]] }).notNull().default(EmailFolder.INBOX),
   processed: boolean("processed").notNull().default(false),
   flags: jsonb("flags").notNull().default({}),
   receivedAt: timestamp("received_at").notNull(),
