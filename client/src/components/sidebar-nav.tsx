@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Inbox,
   ListTodo,
@@ -8,10 +9,12 @@ import {
   Tag,
   Layout,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Task, Email, TaskStatus } from "@shared/schema";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: Layout },
-  { href: "/inbox", label: "Inbox", icon: Inbox },
+  { href: "/inbox", label: "Inbox", icon: Inbox, showCount: true },
   { href: "/next-actions", label: "Next Actions", icon: ListTodo },
   { href: "/projects", label: "Projects", icon: FolderOpen },
   { href: "/contexts", label: "Contexts", icon: Tag },
@@ -20,13 +23,25 @@ const navItems = [
 export default function SidebarNav() {
   const [location] = useLocation();
 
+  const { data: tasks = [] } = useQuery<Task[]>({ 
+    queryKey: ["/api/tasks"],
+  });
+
+  const { data: emails = [] } = useQuery<Email[]>({ 
+    queryKey: ["/api/emails"],
+  });
+
+  const inboxTaskCount = tasks.filter(t => t.status === TaskStatus.INBOX).length;
+  const unprocessedEmailCount = emails.filter(e => !e.processed).length;
+  const totalInboxCount = inboxTaskCount + unprocessedEmailCount;
+
   return (
     <div className="w-64 border-r bg-card px-3 py-4">
       <div className="mb-4 px-4">
-        <h1 className="text-2xl font-bold">GTD App</h1>
+        <h1 className="text-2xl font-bold">GTD</h1>
       </div>
-      <nav className="space-y-2">
-        {navItems.map(({ href, label, icon: Icon }) => (
+      <nav className="space-y-1">
+        {navItems.map(({ href, label, icon: Icon, showCount }) => (
           <Link key={href} href={href}>
             <Button
               variant={location === href ? "secondary" : "ghost"}
@@ -34,9 +49,19 @@ export default function SidebarNav() {
                 "w-full justify-start gap-2",
                 location === href && "bg-secondary"
               )}
+              data-testid={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}
             >
               <Icon className="h-4 w-4" />
-              {label}
+              <span className="flex-1 text-left">{label}</span>
+              {showCount && totalInboxCount > 0 && (
+                <Badge 
+                  variant="destructive" 
+                  className="ml-auto"
+                  data-testid="badge-inbox-count"
+                >
+                  {totalInboxCount}
+                </Badge>
+              )}
             </Button>
           </Link>
         ))}

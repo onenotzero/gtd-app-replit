@@ -1,0 +1,57 @@
+GTD App Specifications: Core Design Principles
+1. Zero Leaks Policy
+Requirements:
+System must visibly track all captured items at all times
+Display alerts/notifications for unprocessed inbox items
+Flag uncategorized or undecided tasks prominently
+No item can exist in the system without user awareness
+Dashboard must show count of unprocessed items across all capture points
+2. Minimal Friction UX
+Requirements:
+Maximum 3 clicks/taps for any core action (capture, complete, defer)
+Auto-fill/smart suggestions for:
+Project assignment based on context
+Due dates based on patterns
+Tags/contexts from previous similar items
+Anticipate user choices using ML/history
+Remove all non-essential UI elements
+Fast-access quick capture from any screen (hotkey, widget, always-visible input)
+3. Feature Validation Framework
+Acceptance criteria for all features:
+30-day test: Feature still discussed/relevant after 30 days
+60-day test: Significant user adoption maintained
+90-day test: Consistent ongoing usage demonstrated
+Default-off for experimental features (opt-in via preferences)
+Quarterly feature audit to remove unused functionality
+4. Value-First Design
+Requirements:
+Every UI element must serve reproducible workflow value
+No decorative or "nice-to-have" features in core app
+Eliminate notifications/alerts that don't drive action
+Remove features that create work rather than eliminate it
+Zero cognitive burden: decisions only when necessary
+Intentional design: every element has clear purpose visible to user
+5. GTD Methodology Adherence
+Core workflow requirements:
+Strict implementation of GTD's 5 phases:
+Capture (frictionless inbox)
+Clarify (forced decision workflow)
+Organize (projects/contexts/next actions)
+Reflect (weekly review support)
+Engage (context-based action lists)
+Quality gates:
+Internal team must use feature consistently for 30+ days before release
+Feature must align with David Allen's GTD methodology
+6-month sustainability test: "Will power users still use this?"
+6. Trust & Attraction Balance
+Requirements:
+UI must feel inviting, not intimidating
+Avoid creating psychological resistance through:
+Overwhelming options
+Punitive notifications
+Guilt-inducing metrics
+Focus user attention on actions, not the tool itself
+Reward positive behaviors (completion, reviews) subtly
+Success Metric
+The Core Test: Does the app make users feel like the system works for them, or that they're working for the system?
+
