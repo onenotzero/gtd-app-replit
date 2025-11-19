@@ -15,6 +15,7 @@ type InboxItem = {
   type: "task" | "email";
   data: Task | Email;
   timestamp: Date;
+  sortKey: number;
 };
 
 export default function Inbox() {
@@ -140,21 +141,24 @@ export default function Inbox() {
       id: `task-${task.id}`,
       type: "task" as const,
       data: task,
+      // Use current date for display, but sort by task ID (FIFO proxy)
       timestamp: new Date(),
+      sortKey: task.id,
     })),
     ...unprocessedEmails.map((email) => ({
       id: `email-${email.id}`,
       type: "email" as const,
       data: email,
       timestamp: new Date(email.receivedAt),
+      sortKey: new Date(email.receivedAt).getTime(),
     })),
   ].sort((a, b) => {
     // Sort tasks first, then emails
     if (a.type !== b.type) {
       return a.type === "task" ? -1 : 1;
     }
-    // Within same type, sort by timestamp (FIFO)
-    return a.timestamp.getTime() - b.timestamp.getTime();
+    // Within same type, sort by sortKey (FIFO)
+    return a.sortKey - b.sortKey;
   });
 
   const totalUnprocessed = inboxItems.length;

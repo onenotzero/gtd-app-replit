@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertTaskSchema, insertProjectSchema, insertContextSchema, insertEmailSchema } from "@shared/schema";
 import { EmailService } from "./services/email";
+import * as GoogleCalendarService from "./services/google-calendar";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -154,6 +155,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error sending email:', error);
       res.status(500).json({ message: 'Failed to send email' });
+    }
+  });
+
+  // Google Calendar
+  app.get("/api/calendar/status", async (req, res) => {
+    try {
+      const status = await GoogleCalendarService.checkConnection();
+      res.json(status);
+    } catch (error) {
+      console.error('Error checking calendar connection:', error);
+      res.status(500).json({ connected: false, error: 'Failed to check connection' });
+    }
+  });
+
+  app.get("/api/calendar/events", async (req, res) => {
+    try {
+      const events = await GoogleCalendarService.listUpcomingEvents(20);
+      res.json(events);
+    } catch (error) {
+      console.error('Error fetching calendar events:', error);
+      res.status(500).json({ message: 'Failed to fetch events' });
+    }
+  });
+
+  app.get("/api/calendar/calendars", async (req, res) => {
+    try {
+      const calendars = await GoogleCalendarService.listCalendars();
+      res.json(calendars);
+    } catch (error) {
+      console.error('Error fetching calendars:', error);
+      res.status(500).json({ message: 'Failed to fetch calendars' });
+    }
+  });
+
+  app.post("/api/calendar/events", async (req, res) => {
+    try {
+      // Validate calendar event payload (supports both timed and all-day events)
+      const calendarEventSchema = z.object({
+        summary: z.string().min(1, "Event summary is required"),
+        description: z.string().optional(),
+        start: z.union([
+          z.object({
+            dateTime: z.string(),
+            timeZone: z.string().optional(),
+          }),
+          z.object({
+            date: z.string(),
+          }),
+        ]),
+        end: z.union([
+          z.object({
+            dateTime: z.string(),
+            timeZone: z.string().optional(),
+          }),
+          z.object({
+            date: z.string(),
+          }),
+        ]),
+        location: z.string().optional(),
+      });
+      
+      const validatedEvent = calendarEventSchema.parse(req.body);
+      const event = await GoogleCalendarService.createEvent(validatedEvent as any);
+      res.json(event);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: 'Invalid event data', errors: error.errors });
+        return;
+      }
+      console.error('Error creating calendar event:', error);
+      res.status(500).json({ message: 'Failed to create event' });
     }
   });
 

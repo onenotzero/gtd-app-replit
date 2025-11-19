@@ -15,10 +15,6 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 35005
-externalPort = 3001
-
-[[ports]]
 localPort = 38341
 externalPort = 3000
 
@@ -48,3 +44,6 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
+
+[agent]
+integrations = ["google-calendar:1.0.0"]
