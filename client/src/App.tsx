@@ -8,6 +8,7 @@ import Inbox from "@/pages/inbox";
 import Projects from "@/pages/projects";
 import Contexts from "@/pages/contexts";
 import NextActions from "@/pages/next-actions";
+import Calendar from "@/pages/calendar";
 import SidebarNav from "@/components/sidebar-nav";
 
 function Router() {
@@ -21,6 +22,7 @@ function Router() {
           <Route path="/projects" component={Projects} />
           <Route path="/contexts" component={Contexts} />
           <Route path="/next-actions" component={NextActions} />
+          <Route path="/calendar" component={Calendar} />
           <Route component={NotFound} />
         </Switch>
       </main>

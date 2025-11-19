@@ -148,7 +148,14 @@ export default function Inbox() {
       data: email,
       timestamp: new Date(email.receivedAt),
     })),
-  ].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+  ].sort((a, b) => {
+    // Sort tasks first, then emails
+    if (a.type !== b.type) {
+      return a.type === "task" ? -1 : 1;
+    }
+    // Within same type, sort by timestamp (FIFO)
+    return a.timestamp.getTime() - b.timestamp.getTime();
+  });
 
   const totalUnprocessed = inboxItems.length;
 

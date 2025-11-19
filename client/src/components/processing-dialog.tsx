@@ -69,11 +69,7 @@ export interface ProcessingResult {
 const nextActionSchema = z.object({
   nextAction: z
     .string()
-    .min(3, "Next action must be at least 3 characters")
-    .refine((val) => {
-      const verbs = ["call", "email", "write", "review", "buy", "schedule", "contact", "create", "update", "prepare", "send", "research", "discuss"];
-      return verbs.some((verb) => val.toLowerCase().startsWith(verb));
-    }, "Next action should start with a verb (call, email, write, etc.)"),
+    .min(3, "Next action must be at least 3 characters"),
 });
 
 const delegateSchema = z.object({
@@ -668,7 +664,7 @@ export default function ProcessingDialog({
                     <FormLabel>Context (where can this be done?)</FormLabel>
                     <Select
                       onValueChange={(value) => field.onChange(parseInt(value))}
-                      value={field.value ? field.value.toString() : undefined}
+                      value={field.value !== undefined ? String(field.value) : undefined}
                     >
                       <FormControl>
                         <SelectTrigger data-testid="select-context">

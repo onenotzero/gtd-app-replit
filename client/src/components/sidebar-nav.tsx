@@ -8,6 +8,7 @@ import {
   FolderOpen,
   Tag,
   Layout,
+  Calendar,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Task, Email, TaskStatus } from "@shared/schema";
@@ -18,6 +19,7 @@ const navItems = [
   { href: "/next-actions", label: "Next Actions", icon: ListTodo },
   { href: "/projects", label: "Projects", icon: FolderOpen },
   { href: "/contexts", label: "Contexts", icon: Tag },
+  { href: "/calendar", label: "Calendar", icon: Calendar },
 ];
 
 export default function SidebarNav() {
