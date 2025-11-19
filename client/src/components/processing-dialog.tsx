@@ -98,7 +98,10 @@ export default function ProcessingDialog({
   onProcess,
 }: ProcessingDialogProps) {
   const [step, setStep] = useState<ProcessingStep>("actionable");
+  const [stepHistory, setStepHistory] = useState<ProcessingStep[]>([]);
   const [nonActionableChoice, setNonActionableChoice] = useState<NonActionableChoice | null>(null);
+  const [referenceCategory, setReferenceCategory] = useState("");
+  const [somedayNotes, setSomedayNotes] = useState("");
   const [nextAction, setNextAction] = useState("");
   const [isDoNow, setIsDoNow] = useState(false);
   const [shouldDelegate, setShouldDelegate] = useState(false);
@@ -141,11 +144,32 @@ export default function ProcessingDialog({
     return item.type === "email" ? (item as Email).subject : (item as Task).title;
   };
 
+  const navigateToStep = (newStep: ProcessingStep) => {
+    setStepHistory([...stepHistory, step]);
+    setStep(newStep);
+  };
+
+  const goBack = () => {
+    // Special case: if we're in a non-actionable substep (reference/someday), 
+    // just go back to the non-actionable choice screen
+    if (step === "non-actionable" && nonActionableChoice) {
+      setNonActionableChoice(null);
+      return;
+    }
+
+    // Otherwise, go back to the previous step in history
+    if (stepHistory.length > 0) {
+      const previousStep = stepHistory[stepHistory.length - 1];
+      setStepHistory(stepHistory.slice(0, -1));
+      setStep(previousStep);
+    }
+  };
+
   const handleActionableChoice = (isActionable: boolean) => {
     if (isActionable) {
-      setStep("next-action");
+      navigateToStep("next-action");
     } else {
-      setStep("non-actionable");
+      navigateToStep("non-actionable");
     }
   };
 
@@ -181,7 +205,7 @@ export default function ProcessingDialog({
 
   const handleNextActionSubmit = (data: { nextAction: string }) => {
     setNextAction(data.nextAction);
-    setStep("two-minute");
+    navigateToStep("two-minute");
   };
 
   const handleTwoMinuteChoice = (doNow: boolean) => {
@@ -190,15 +214,15 @@ export default function ProcessingDialog({
       onProcess({ action: "do-now" });
       resetDialog();
     } else {
-      setStep("delegate-choice");
+      navigateToStep("delegate-choice");
     }
   };
 
   const handleDelegateChoice = (delegate: boolean) => {
     if (delegate) {
-      setStep("delegate-form");
+      navigateToStep("delegate-form");
     } else {
-      setStep("project-choice");
+      navigateToStep("project-choice");
     }
   };
 
@@ -220,15 +244,15 @@ export default function ProcessingDialog({
 
   const handleProjectChoice = (isProject: boolean) => {
     if (isProject) {
-      setStep("project-form");
+      navigateToStep("project-form");
     } else {
-      setStep("organize");
+      navigateToStep("organize");
     }
   };
 
   const handleProjectSubmit = (data: { projectName: string; projectDescription?: string }) => {
     setProjectData({ name: data.projectName, description: data.projectDescription });
-    setStep("organize");
+    navigateToStep("organize");
   };
 
   const handleOrganizeSubmit = (data: {
@@ -264,7 +288,10 @@ export default function ProcessingDialog({
 
   const resetDialog = () => {
     setStep("actionable");
+    setStepHistory([]);
     setNonActionableChoice(null);
+    setReferenceCategory("");
+    setSomedayNotes("");
     setNextAction("");
     setIsDoNow(false);
     setShouldDelegate(false);
@@ -357,6 +384,13 @@ export default function ProcessingDialog({
                 </div>
               </Button>
             </div>
+            <Button
+              onClick={goBack}
+              variant="ghost"
+              data-testid="button-back"
+            >
+              Back
+            </Button>
           </div>
         )}
 
@@ -366,23 +400,32 @@ export default function ProcessingDialog({
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                const category = formData.get("category") as string;
-                handleNonActionableSubmit({ category: category || undefined });
+                handleNonActionableSubmit({ category: referenceCategory || undefined });
               }}
               className="space-y-3"
             >
               <div>
                 <label className="text-sm font-medium">Category (optional)</label>
                 <Input
-                  name="category"
+                  value={referenceCategory}
+                  onChange={(e) => setReferenceCategory(e.target.value)}
                   placeholder="e.g., Articles, Receipts, Documentation"
                   data-testid="input-reference-category"
                 />
               </div>
-              <Button type="submit" data-testid="button-save-reference">
-                Save Reference
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  onClick={goBack}
+                  variant="ghost"
+                  data-testid="button-back"
+                >
+                  Back
+                </Button>
+                <Button type="submit" data-testid="button-save-reference">
+                  Save Reference
+                </Button>
+              </div>
             </form>
           </div>
         )}
@@ -393,23 +436,32 @@ export default function ProcessingDialog({
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                const notes = formData.get("notes") as string;
-                handleNonActionableSubmit({ notes: notes || undefined });
+                handleNonActionableSubmit({ notes: somedayNotes || undefined });
               }}
               className="space-y-3"
             >
               <div>
                 <label className="text-sm font-medium">Notes (optional)</label>
                 <Textarea
-                  name="notes"
+                  value={somedayNotes}
+                  onChange={(e) => setSomedayNotes(e.target.value)}
                   placeholder="Why might you want to do this later?"
                   data-testid="input-someday-notes"
                 />
               </div>
-              <Button type="submit" data-testid="button-save-someday">
-                Add to Someday/Maybe
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  onClick={goBack}
+                  variant="ghost"
+                  data-testid="button-back"
+                >
+                  Back
+                </Button>
+                <Button type="submit" data-testid="button-save-someday">
+                  Add to Someday/Maybe
+                </Button>
+              </div>
             </form>
           </div>
         )}
@@ -440,9 +492,19 @@ export default function ProcessingDialog({
                   </FormItem>
                 )}
               />
-              <Button type="submit" data-testid="button-continue">
-                Continue
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  onClick={goBack}
+                  variant="ghost"
+                  data-testid="button-back"
+                >
+                  Back
+                </Button>
+                <Button type="submit" data-testid="button-continue">
+                  Continue
+                </Button>
+              </div>
             </form>
           </Form>
         )}
@@ -470,6 +532,13 @@ export default function ProcessingDialog({
                 No - Takes longer
               </Button>
             </div>
+            <Button
+              onClick={goBack}
+              variant="ghost"
+              data-testid="button-back"
+            >
+              Back
+            </Button>
           </div>
         )}
 
@@ -497,6 +566,13 @@ export default function ProcessingDialog({
                 I'll do it
               </Button>
             </div>
+            <Button
+              onClick={goBack}
+              variant="ghost"
+              data-testid="button-back"
+            >
+              Back
+            </Button>
           </div>
         )}
 
@@ -560,9 +636,19 @@ export default function ProcessingDialog({
                     </FormItem>
                   )}
                 />
-                <Button type="submit" data-testid="button-delegate-task">
-                  Delegate Task
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    onClick={goBack}
+                    variant="ghost"
+                    data-testid="button-back"
+                  >
+                    Back
+                  </Button>
+                  <Button type="submit" data-testid="button-delegate-task">
+                    Delegate Task
+                  </Button>
+                </div>
               </form>
             </Form>
           </div>
@@ -592,6 +678,13 @@ export default function ProcessingDialog({
                 Single Action
               </Button>
             </div>
+            <Button
+              onClick={goBack}
+              variant="ghost"
+              data-testid="button-back"
+            >
+              Back
+            </Button>
           </div>
         )}
 
@@ -637,9 +730,19 @@ export default function ProcessingDialog({
                     </FormItem>
                   )}
                 />
-                <Button type="submit" data-testid="button-submit-project">
-                  Create Project & Continue
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    onClick={goBack}
+                    variant="ghost"
+                    data-testid="button-back"
+                  >
+                    Back
+                  </Button>
+                  <Button type="submit" data-testid="button-submit-project">
+                    Create Project & Continue
+                  </Button>
+                </div>
               </form>
             </Form>
           </div>
@@ -769,9 +872,19 @@ export default function ProcessingDialog({
                 )}
               />
 
-              <Button type="submit" className="w-full" data-testid="button-complete-processing">
-                Complete Processing
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  onClick={goBack}
+                  variant="ghost"
+                  data-testid="button-back"
+                >
+                  Back
+                </Button>
+                <Button type="submit" className="flex-1" data-testid="button-complete-processing">
+                  Complete Processing
+                </Button>
+              </div>
             </form>
           </Form>
         )}
