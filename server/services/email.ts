@@ -42,42 +42,50 @@ export class EmailService {
       await connection.openBox('INBOX');
       console.log('Opened INBOX');
 
-      const searchCriteria = ['UNSEEN'];
+      const searchCriteria = ['ALL'];
       const fetchOptions = {
-        bodies: ['HEADER', 'TEXT', 'FLAGS'],
+        bodies: [''],
+        struct: true,
         markSeen: false
       };
 
       const messages = await connection.search(searchCriteria, fetchOptions);
-      console.log(`Found ${messages.length} unread messages`);
+      console.log(`Found ${messages.length} messages`);
+      
+      // Limit to most recent 50 emails
+      const recentMessages = messages.slice(-50).reverse();
 
       const emails: InsertEmail[] = [];
 
-      for (const message of messages) {
-        const headerPart = message.parts.find(part => part.which === 'HEADER');
-        const textPart = message.parts.find(part => part.which === 'TEXT');
+      for (const message of recentMessages) {
+        try {
+          const allParts = message.parts.filter((part: any) => part.which === '');
+          const bodyPart = allParts.length > 0 ? allParts[0] : message.parts[0];
+          
+          if (bodyPart && bodyPart.body) {
+            const parsed = await simpleParser(bodyPart.body);
 
-        if (headerPart && textPart) {
-          const parsed = await simpleParser(textPart.body);
+            const email: InsertEmail = {
+              messageId: message.attributes.uid.toString(),
+              subject: parsed.subject || 'No Subject',
+              sender: parsed.from?.text || 'Unknown Sender',
+              recipients: parsed.to?.text ? [parsed.to.text] : [],
+              cc: parsed.cc?.text ? [parsed.cc.text] : [],
+              bcc: parsed.bcc?.text ? [parsed.bcc.text] : [],
+              content: parsed.text || '',
+              htmlContent: parsed.html || null,
+              folder: EmailFolder.INBOX,
+              processed: false,
+              flags: message.attributes.flags || [],
+              receivedAt: parsed.date || new Date(),
+              attachments: parsed.attachments || []
+            };
 
-          const email: InsertEmail = {
-            messageId: message.attributes.uid.toString(),
-            subject: parsed.subject || 'No Subject',
-            sender: parsed.from?.text || 'Unknown Sender',
-            recipients: parsed.to?.text ? [parsed.to.text] : [],
-            cc: parsed.cc?.text ? [parsed.cc.text] : [],
-            bcc: parsed.bcc?.text ? [parsed.bcc.text] : [],
-            content: parsed.text || '',
-            htmlContent: parsed.html || null,
-            folder: EmailFolder.INBOX,
-            processed: false,
-            flags: message.attributes.flags,
-            receivedAt: parsed.date || new Date(),
-            attachments: parsed.attachments || []
-          };
-
-          emails.push(email);
-          await storage.createEmail(email);
+            emails.push(email);
+            await storage.createEmail(email);
+          }
+        } catch (err) {
+          console.error('Error parsing email:', err);
         }
       }
 
