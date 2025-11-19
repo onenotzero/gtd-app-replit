@@ -144,16 +144,6 @@ export default function Inbox() {
       )}
 
       <div className="space-y-6">
-        {emails.filter(e => !e.processed).length > 0 && (
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Emails to Process</h3>
-            <EmailInbox
-              emails={emails}
-              onProcess={handleEmailProcess}
-            />
-          </div>
-        )}
-
         {tasks.length > 0 && (
           <div>
             <h3 className="text-lg font-semibold mb-3">Tasks to Process</h3>
@@ -163,6 +153,16 @@ export default function Inbox() {
               projects={projects}
               onEdit={handleEditTask}
               onDelete={(id) => deleteTask.mutate(id)}
+            />
+          </div>
+        )}
+
+        {emails.filter(e => !e.processed).length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold mb-3">Emails to Process</h3>
+            <EmailInbox
+              emails={emails}
+              onProcess={handleEmailProcess}
             />
           </div>
         )}
