@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertTaskSchema, insertProjectSchema, insertContextSchema } from "@shared/schema";
+import { insertTaskSchema, insertProjectSchema, insertContextSchema, insertEmailSchema } from "@shared/schema";
 import { EmailService } from "./services/email";
 import { z } from "zod";
 
@@ -90,12 +90,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Enhanced Email Routes
   app.get("/api/emails", async (req, res) => {
     try {
-      await EmailService.fetchEmails();
+      // Trigger IMAP fetch in background (don't wait)
+      EmailService.fetchEmails().catch(err => console.error('Background email fetch error:', err));
+      // Return existing emails from database immediately
       const emails = await storage.getEmails();
       res.json(emails);
     } catch (error) {
       console.error('Error fetching emails:', error);
       res.status(500).json({ message: 'Failed to fetch emails' });
+    }
+  });
+
+  app.post("/api/emails", async (req, res) => {
+    try {
+      const email = insertEmailSchema.parse(req.body);
+      const created = await storage.createEmail(email);
+      res.json(created);
+    } catch (error) {
+      console.error('Error creating email:', error);
+      res.status(500).json({ message: 'Failed to create email' });
     }
   });
 

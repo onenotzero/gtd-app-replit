@@ -564,7 +564,7 @@ export default function ProcessingDialog({
                     </FormItem>
                   )}
                 />
-                <Button type="submit" data-testid="button-submit-delegate">
+                <Button type="submit" data-testid="button-delegate-task">
                   Delegate Task
                 </Button>
               </form>

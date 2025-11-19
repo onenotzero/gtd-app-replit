@@ -4,6 +4,8 @@
 
 This is a Getting Things Done (GTD) task management system built with React, Express, and PostgreSQL. The application follows David Allen's GTD methodology, providing a comprehensive system for capturing, organizing, and tracking tasks through their complete lifecycle. The system includes email integration for automatic task creation and supports the full GTD workflow from inbox processing to project completion.
 
+**November 2025 Update:** Implemented unified processing workflow for all inbox items (tasks and emails) following the complete GTD decision tree. The ProcessingDialog component guides users through systematic decision-making with zero-leak policy enforcement.
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -23,6 +25,10 @@ The frontend is built with React and TypeScript, using a modern component-based 
 
 The application follows a feature-based organization with reusable UI components, custom hooks, and utility functions. The GTD methodology is reflected in the navigation structure with dedicated views for Inbox, Next Actions, Projects, and Contexts.
 
+**Key Components:**
+- **ProcessingDialog**: Implements the complete GTD decision tree with discrete step-based navigation to prevent form auto-submission. Guides users through: Is it actionable? → Non-actionable (trash/reference/someday) OR Actionable (next action → 2-minute rule → delegate → project → organize).
+- **Unified Inbox**: Displays combined task and email items sorted by received date (FIFO). Single "Process" button per item launches ProcessingDialog with context-aware processing.
+
 ### Backend Architecture
 
 The backend uses Express.js with TypeScript in an ESM module configuration:
@@ -31,7 +37,8 @@ The backend uses Express.js with TypeScript in an ESM module configuration:
 - **Request Handling**: Express middleware for JSON parsing, URL encoding, and request logging
 - **Error Handling**: Centralized error middleware with structured error responses
 - **Storage Abstraction**: Interface-based storage layer supporting both in-memory and database implementations
-- **Email Integration**: IMAP/SMTP service for fetching and processing emails into tasks
+- **Email Integration**: IMAP/SMTP service for fetching incoming emails and processing them through the same GTD workflow as tasks
+- **Async IMAP Fetch**: Email fetching happens in background to prevent API timeouts; GET /api/emails returns existing emails immediately while triggering background sync
 
 The server architecture emphasizes separation of concerns with dedicated route handlers, storage interfaces, and service classes for external integrations.
 
@@ -44,7 +51,7 @@ The application uses PostgreSQL with Drizzle ORM for type-safe database operatio
 - **Contexts Table**: GTD contexts (locations, tools, or situations) for task organization
 - **Emails Table**: Email messages with processing status and metadata for task generation
 
-The schema supports GTD principles with task statuses (inbox, next_action, waiting, someday, done) and proper relationships between entities. Database migrations are managed through Drizzle Kit.
+The schema supports GTD principles with task statuses (inbox, next_action, waiting, someday, reference, done) and proper relationships between entities. Extended GTD fields include referenceCategory, notes (for someday/maybe), waitingFor, waitingForFollowUp, timeEstimate, energyLevel, and deferCount for comprehensive task management. Database migrations are managed through Drizzle Kit.
 
 ### Development Workflow
 
