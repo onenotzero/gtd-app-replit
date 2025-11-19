@@ -157,6 +157,14 @@ export class MemStorage implements IStorage {
   }
 
   async createEmail(email: InsertEmail): Promise<Email> {
+    // Check if email with this messageId already exists
+    const existing = Array.from(this.emails.values()).find(
+      e => e.messageId === email.messageId
+    );
+    if (existing) {
+      return existing;
+    }
+    
     const id = this.emailId++;
     const newEmail = { ...email, id } as Email;
     this.emails.set(id, newEmail);
