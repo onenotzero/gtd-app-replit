@@ -4,7 +4,11 @@
 
 This is a Getting Things Done (GTD) task management system built with React, Express, and PostgreSQL. The application follows David Allen's GTD methodology, providing a comprehensive system for capturing, organizing, and tracking tasks through their complete lifecycle. The system includes email integration for automatic task creation and supports the full GTD workflow from inbox processing to project completion.
 
-**November 2025 Update:** Implemented unified processing workflow for all inbox items (tasks and emails) following the complete GTD decision tree. The ProcessingDialog component guides users through systematic decision-making with zero-leak policy enforcement.
+**November 2025 Updates:** 
+- Implemented unified processing workflow for all inbox items (tasks and emails) following the complete GTD decision tree. The ProcessingDialog component guides users through systematic decision-making with zero-leak policy enforcement.
+- Inbox sorting prioritizes tasks over emails (FIFO within each group) for better task management.
+- Task naming flexibility improved: verb-first naming encouraged but not enforced.
+- Google Calendar integration added with secure API key management via Replit connectors.
 
 ## User Preferences
 
@@ -26,8 +30,9 @@ The frontend is built with React and TypeScript, using a modern component-based 
 The application follows a feature-based organization with reusable UI components, custom hooks, and utility functions. The GTD methodology is reflected in the navigation structure with dedicated views for Inbox, Next Actions, Projects, and Contexts.
 
 **Key Components:**
-- **ProcessingDialog**: Implements the complete GTD decision tree with discrete step-based navigation to prevent form auto-submission. Guides users through: Is it actionable? → Non-actionable (trash/reference/someday) OR Actionable (next action → 2-minute rule → delegate → project → organize).
-- **Unified Inbox**: Displays combined task and email items sorted by received date (FIFO). Single "Process" button per item launches ProcessingDialog with context-aware processing.
+- **ProcessingDialog**: Implements the complete GTD decision tree with discrete step-based navigation to prevent form auto-submission. Guides users through: Is it actionable? → Non-actionable (trash/reference/someday) OR Actionable (next action → 2-minute rule → delegate → project → organize). Verb-first naming is encouraged via UI hints but not enforced.
+- **Unified Inbox**: Displays combined task and email items with tasks prioritized over emails, FIFO-sorted within each group. Single "Process" button per item launches ProcessingDialog with context-aware processing.
+- **Calendar Integration**: Google Calendar connected via Replit integration for viewing upcoming events within the next 7 days. Supports both timed and all-day events with proper validation.
 
 ### Backend Architecture
 
@@ -39,6 +44,7 @@ The backend uses Express.js with TypeScript in an ESM module configuration:
 - **Storage Abstraction**: Interface-based storage layer supporting both in-memory and database implementations
 - **Email Integration**: IMAP/SMTP service for fetching incoming emails and processing them through the same GTD workflow as tasks
 - **Async IMAP Fetch**: Email fetching happens in background to prevent API timeouts; GET /api/emails returns existing emails immediately while triggering background sync
+- **Calendar API**: RESTful endpoints for Google Calendar integration with Zod validation, fresh token fetching per request, and support for both timed and all-day events
 
 The server architecture emphasizes separation of concerns with dedicated route handlers, storage interfaces, and service classes for external integrations.
 
@@ -83,6 +89,12 @@ The project uses a full-stack TypeScript setup with shared type definitions:
 - **Lucide React**: Icon library for consistent iconography
 - **shadcn/ui**: Pre-built component system combining Radix UI with Tailwind CSS
 
+### Calendar Integration
+
+- **Google Calendar API**: OAuth-based integration via googleapis package
+- **Replit Connectors**: Secure API key and token management with automatic rotation
+- **Fresh Token Policy**: Access tokens fetched per request to avoid stale token issues
+
 ### Development Tools
 
 - **TanStack Query**: Server state management with caching and synchronization
@@ -90,4 +102,4 @@ The project uses a full-stack TypeScript setup with shared type definitions:
 - **Zod**: Schema validation for runtime type checking
 - **Date-fns**: Date manipulation and formatting utilities
 
-The application is designed to be deployed on platforms supporting Node.js with PostgreSQL databases, with email integration requiring IMAP/SMTP server credentials for full functionality.
+The application is designed to be deployed on platforms supporting Node.js with PostgreSQL databases. Email integration requires IMAP/SMTP server credentials. Calendar integration uses Replit's connector system for secure Google Calendar API access.
