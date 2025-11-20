@@ -6,8 +6,8 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Inbox from "@/pages/inbox";
 import Projects from "@/pages/projects";
-import Contexts from "@/pages/contexts";
 import NextActions from "@/pages/next-actions";
+import WaitingFor from "@/pages/waiting-for";
 import Calendar from "@/pages/calendar";
 import SidebarNav from "@/components/sidebar-nav";
 
@@ -20,8 +20,8 @@ function Router() {
           <Route path="/" component={Dashboard} />
           <Route path="/inbox" component={Inbox} />
           <Route path="/projects" component={Projects} />
-          <Route path="/contexts" component={Contexts} />
           <Route path="/next-actions" component={NextActions} />
+          <Route path="/waiting-for" component={WaitingFor} />
           <Route path="/calendar" component={Calendar} />
           <Route component={NotFound} />
         </Switch>

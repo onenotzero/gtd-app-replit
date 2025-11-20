@@ -6,7 +6,7 @@ import {
   Inbox,
   ListTodo,
   FolderOpen,
-  Tag,
+  Clock,
   Layout,
   Calendar,
 } from "lucide-react";
@@ -18,7 +18,7 @@ const navItems = [
   { href: "/inbox", label: "Inbox", icon: Inbox, showCount: true },
   { href: "/next-actions", label: "Next Actions", icon: ListTodo },
   { href: "/projects", label: "Projects", icon: FolderOpen },
-  { href: "/contexts", label: "Contexts", icon: Tag },
+  { href: "/waiting-for", label: "Waiting For", icon: Clock },
   { href: "/calendar", label: "Calendar", icon: Calendar },
 ];
 

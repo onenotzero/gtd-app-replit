@@ -102,7 +102,10 @@ export const emailAccounts = pgTable("email_accounts", {
 });
 
 // Insert schemas
-export const insertTaskSchema = createInsertSchema(tasks).omit({ id: true });
+export const insertTaskSchema = createInsertSchema(tasks).omit({ id: true }).extend({
+  dueDate: z.coerce.date().optional(),
+  waitingForFollowUp: z.coerce.date().optional(),
+});
 export const insertProjectSchema = createInsertSchema(projects).omit({ id: true });
 export const insertContextSchema = createInsertSchema(contexts).omit({ id: true });
 export const insertEmailSchema = createInsertSchema(emails).omit({ id: true }).extend({
