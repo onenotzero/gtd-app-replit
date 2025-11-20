@@ -10,6 +10,7 @@ This is a Getting Things Done (GTD) task management system built with React, Exp
 - Inbox sorting prioritizes tasks over emails (FIFO within each group) for better task management.
 - Task naming flexibility improved: verb-first naming encouraged but not enforced.
 - Google Calendar integration added with secure API key management via Replit connectors.
+- Navigation restructured: "Waiting For" page added to track delegated tasks; Projects moved to bottom of sidebar navigation.
 
 ## User Preferences
 
@@ -28,7 +29,7 @@ The frontend is built with React and TypeScript, using a modern component-based 
 - **Forms**: React Hook Form with Zod validation for type-safe form handling
 - **Build Tool**: Vite for fast development and optimized production builds
 
-The application follows a feature-based organization with reusable UI components, custom hooks, and utility functions. The GTD methodology is reflected in the navigation structure with dedicated views for Inbox, Next Actions, Projects, and Contexts.
+The application follows a feature-based organization with reusable UI components, custom hooks, and utility functions. The GTD methodology is reflected in the navigation structure with dedicated views for Dashboard, Inbox, Next Actions, Waiting For, Calendar, and Projects (ordered bottom-to-top in the sidebar).
 
 **Key Components:**
 - **ProcessingDialog**: Implements the complete GTD decision tree with discrete step-based navigation to prevent form auto-submission. Guides users through: Is it actionable? → Non-actionable (trash/reference/someday) OR Actionable (next action → 2-minute rule → delegate → project → organize). Features full Back button navigation at every step (except the first) with form data preservation, allowing users to revisit decisions without losing their work. Verb-first naming is encouraged via UI hints but not enforced.

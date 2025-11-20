@@ -17,9 +17,9 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: Layout },
   { href: "/inbox", label: "Inbox", icon: Inbox, showCount: true },
   { href: "/next-actions", label: "Next Actions", icon: ListTodo },
-  { href: "/projects", label: "Projects", icon: FolderOpen },
   { href: "/waiting-for", label: "Waiting For", icon: Clock },
   { href: "/calendar", label: "Calendar", icon: Calendar },
+  { href: "/projects", label: "Projects", icon: FolderOpen },
 ];
 
 export default function SidebarNav() {
