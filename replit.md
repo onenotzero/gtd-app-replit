@@ -6,6 +6,7 @@ This is a Getting Things Done (GTD) task management system built with React, Exp
 
 **November 2025 Updates:** 
 - Implemented unified processing workflow for all inbox items (tasks and emails) following the complete GTD decision tree. The ProcessingDialog component guides users through systematic decision-making with zero-leak policy enforcement.
+- Added Back button navigation to every step of the processing workflow, allowing users to revisit and revise decisions without losing entered data.
 - Inbox sorting prioritizes tasks over emails (FIFO within each group) for better task management.
 - Task naming flexibility improved: verb-first naming encouraged but not enforced.
 - Google Calendar integration added with secure API key management via Replit connectors.
@@ -30,7 +31,7 @@ The frontend is built with React and TypeScript, using a modern component-based 
 The application follows a feature-based organization with reusable UI components, custom hooks, and utility functions. The GTD methodology is reflected in the navigation structure with dedicated views for Inbox, Next Actions, Projects, and Contexts.
 
 **Key Components:**
-- **ProcessingDialog**: Implements the complete GTD decision tree with discrete step-based navigation to prevent form auto-submission. Guides users through: Is it actionable? → Non-actionable (trash/reference/someday) OR Actionable (next action → 2-minute rule → delegate → project → organize). Verb-first naming is encouraged via UI hints but not enforced.
+- **ProcessingDialog**: Implements the complete GTD decision tree with discrete step-based navigation to prevent form auto-submission. Guides users through: Is it actionable? → Non-actionable (trash/reference/someday) OR Actionable (next action → 2-minute rule → delegate → project → organize). Features full Back button navigation at every step (except the first) with form data preservation, allowing users to revisit decisions without losing their work. Verb-first naming is encouraged via UI hints but not enforced.
 - **Unified Inbox**: Displays combined task and email items with tasks prioritized over emails, FIFO-sorted within each group. Single "Process" button per item launches ProcessingDialog with context-aware processing.
 - **Calendar Integration**: Google Calendar connected via Replit integration for viewing upcoming events within the next 7 days. Supports both timed and all-day events with proper validation.
 
