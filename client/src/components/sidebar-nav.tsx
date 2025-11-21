@@ -9,17 +9,26 @@ import {
   Clock,
   Layout,
   Calendar,
+  Archive,
+  Lightbulb,
+  Trash2,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Task, Email, TaskStatus } from "@shared/schema";
 
-const navItems = [
+const mainNavItems = [
   { href: "/", label: "Dashboard", icon: Layout },
   { href: "/inbox", label: "Inbox", icon: Inbox, showCount: true },
   { href: "/next-actions", label: "Next Actions", icon: ListTodo },
   { href: "/waiting-for", label: "Waiting For", icon: Clock },
   { href: "/calendar", label: "Calendar", icon: Calendar },
   { href: "/projects", label: "Projects", icon: FolderOpen },
+];
+
+const containerItems = [
+  { href: "/reference", label: "Reference", icon: Archive },
+  { href: "/incubate", label: "Incubate", icon: Lightbulb },
+  { href: "/trash", label: "Trash", icon: Trash2 },
 ];
 
 export default function SidebarNav() {
@@ -43,7 +52,7 @@ export default function SidebarNav() {
         <h1 className="text-2xl font-bold">GTD</h1>
       </div>
       <nav className="space-y-1">
-        {navItems.map(({ href, label, icon: Icon, showCount }) => (
+        {mainNavItems.map(({ href, label, icon: Icon, showCount }) => (
           <Link key={href} href={href}>
             <Button
               variant={location === href ? "secondary" : "ghost"}
@@ -64,6 +73,22 @@ export default function SidebarNav() {
                   {totalInboxCount}
                 </Badge>
               )}
+            </Button>
+          </Link>
+        ))}
+        <div className="my-4 border-t" />
+        {containerItems.map(({ href, label, icon: Icon }) => (
+          <Link key={href} href={href}>
+            <Button
+              variant={location === href ? "secondary" : "ghost"}
+              className={cn(
+                "w-full justify-start gap-2",
+                location === href && "bg-secondary"
+              )}
+              data-testid={`nav-${label.toLowerCase().replace(/\s+/g, '-')}`}
+            >
+              <Icon className="h-4 w-4" />
+              <span className="flex-1 text-left">{label}</span>
             </Button>
           </Link>
         ))}
