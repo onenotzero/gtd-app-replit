@@ -108,6 +108,8 @@ export default function Inbox() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
       queryClient.invalidateQueries({ queryKey: ["/api/tasks/status/inbox"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks/status/next_action"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks/status/waiting"] });
       queryClient.invalidateQueries({ queryKey: ["/api/emails"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       toast({
