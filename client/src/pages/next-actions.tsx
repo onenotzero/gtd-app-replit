@@ -311,14 +311,13 @@ export default function NextActions() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Context</FormLabel>
-                    <Select value={field.value?.toString() || ""} onValueChange={(val) => field.onChange(val ? Number(val) : null)}>
+                    <Select value={field.value ? field.value.toString() : ""} onValueChange={(val) => field.onChange(val ? Number(val) : null)}>
                       <FormControl>
                         <SelectTrigger data-testid="select-task-context">
                           <SelectValue placeholder="Select context" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">No context</SelectItem>
                         {contexts?.map((ctx) => (
                           <SelectItem key={ctx.id} value={ctx.id.toString()}>
                             {ctx.name}
@@ -337,14 +336,13 @@ export default function NextActions() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Project</FormLabel>
-                    <Select value={field.value?.toString() || ""} onValueChange={(val) => field.onChange(val ? Number(val) : null)}>
+                    <Select value={field.value ? field.value.toString() : ""} onValueChange={(val) => field.onChange(val ? Number(val) : null)}>
                       <FormControl>
                         <SelectTrigger data-testid="select-task-project">
                           <SelectValue placeholder="Select project" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">No project</SelectItem>
                         {projects?.map((proj) => (
                           <SelectItem key={proj.id} value={proj.id.toString()}>
                             {proj.name}
@@ -363,14 +361,13 @@ export default function NextActions() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Time Estimate</FormLabel>
-                    <Select value={field.value || ""} onValueChange={field.onChange}>
+                    <Select value={field.value || ""} onValueChange={(val) => field.onChange(val || undefined)}>
                       <FormControl>
                         <SelectTrigger data-testid="select-time-estimate">
                           <SelectValue placeholder="Select time estimate" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
                         <SelectItem value={TimeEstimate.MINUTES_15}>15 minutes</SelectItem>
                         <SelectItem value={TimeEstimate.MINUTES_30}>30 minutes</SelectItem>
                         <SelectItem value={TimeEstimate.HOUR_1}>1 hour</SelectItem>
@@ -388,14 +385,13 @@ export default function NextActions() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Energy Level</FormLabel>
-                    <Select value={field.value || ""} onValueChange={field.onChange}>
+                    <Select value={field.value || ""} onValueChange={(val) => field.onChange(val || undefined)}>
                       <FormControl>
                         <SelectTrigger data-testid="select-energy-level">
                           <SelectValue placeholder="Select energy level" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
                         <SelectItem value={EnergyLevel.HIGH}>High</SelectItem>
                         <SelectItem value={EnergyLevel.MEDIUM}>Medium</SelectItem>
                         <SelectItem value={EnergyLevel.LOW}>Low</SelectItem>
