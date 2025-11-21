@@ -361,13 +361,14 @@ export default function NextActions() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Time Estimate</FormLabel>
-                    <Select value={field.value || ""} onValueChange={(val) => field.onChange(val || undefined)}>
+                    <Select value={field.value || "unset"} onValueChange={(val) => field.onChange(val === "unset" ? undefined : val)}>
                       <FormControl>
                         <SelectTrigger data-testid="select-time-estimate">
                           <SelectValue placeholder="Select time estimate" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value="unset">None</SelectItem>
                         <SelectItem value={TimeEstimate.MINUTES_15}>15 minutes</SelectItem>
                         <SelectItem value={TimeEstimate.MINUTES_30}>30 minutes</SelectItem>
                         <SelectItem value={TimeEstimate.HOUR_1}>1 hour</SelectItem>
@@ -385,13 +386,14 @@ export default function NextActions() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Energy Level</FormLabel>
-                    <Select value={field.value || ""} onValueChange={(val) => field.onChange(val || undefined)}>
+                    <Select value={field.value || "unset"} onValueChange={(val) => field.onChange(val === "unset" ? undefined : val)}>
                       <FormControl>
                         <SelectTrigger data-testid="select-energy-level">
                           <SelectValue placeholder="Select energy level" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value="unset">None</SelectItem>
                         <SelectItem value={EnergyLevel.HIGH}>High</SelectItem>
                         <SelectItem value={EnergyLevel.MEDIUM}>Medium</SelectItem>
                         <SelectItem value={EnergyLevel.LOW}>Low</SelectItem>
