@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Plus } from "lucide-react";
+import { Plus, Edit2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function NextActions() {
   const [isContextDialogOpen, setIsContextDialogOpen] = useState(false);
+  const [editingContextId, setEditingContextId] = useState<number | null>(null);
   const { toast } = useToast();
 
   const { data: tasks } = useQuery<Task[]>({
