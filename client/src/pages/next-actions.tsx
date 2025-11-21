@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { TaskStatus, type Task, type Context, type Project, type InsertContext, type InsertTask, insertContextSchema, insertTaskSchema } from "@shared/schema";
+import { TaskStatus, TimeEstimate, EnergyLevel, type Task, type Context, type Project, type InsertContext, type InsertTask, insertContextSchema, insertTaskSchema } from "@shared/schema";
 import TaskList from "@/components/task-list";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -8,11 +8,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Edit2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
 
 export default function NextActions() {
   const [isContextDialogOpen, setIsContextDialogOpen] = useState(false);
@@ -41,12 +43,27 @@ export default function NextActions() {
     },
   });
 
+  const taskEditSchema = insertTaskSchema.extend({
+    contextId: z.number().nullable().optional(),
+    projectId: z.number().nullable().optional(),
+    status: z.string().optional(),
+    dueDate: z.coerce.date().nullable().optional(),
+    waitingForFollowUp: z.coerce.date().nullable().optional(),
+  });
+
   const taskForm = useForm({
-    resolver: zodResolver(insertTaskSchema),
+    resolver: zodResolver(taskEditSchema),
     defaultValues: {
       title: "",
       description: "",
       status: TaskStatus.NEXT_ACTION,
+      contextId: null,
+      projectId: null,
+      timeEstimate: undefined,
+      energyLevel: undefined,
+      waitingFor: "",
+      referenceCategory: "",
+      notes: "",
     },
   });
 
@@ -108,12 +125,21 @@ export default function NextActions() {
     taskForm.reset({
       title: task.title,
       description: task.description || "",
-      status: task.status as any,
+      status: task.status,
+      contextId: task.contextId || null,
+      projectId: task.projectId || null,
+      timeEstimate: task.timeEstimate,
+      energyLevel: task.energyLevel,
+      waitingFor: task.waitingFor || "",
+      waitingForFollowUp: task.waitingForFollowUp ? new Date(task.waitingForFollowUp) : null,
+      referenceCategory: task.referenceCategory || "",
+      notes: task.notes || "",
+      dueDate: task.dueDate ? new Date(task.dueDate) : null,
     });
     setIsTaskEditDialogOpen(true);
   };
 
-  const handleTaskSubmit = (data: Partial<InsertTask>) => {
+  const handleTaskSubmit = (data: any) => {
     updateTask.mutate(data);
   };
 
@@ -215,7 +241,7 @@ export default function NextActions() {
       </Dialog>
 
       <Dialog open={isTaskEditDialogOpen} onOpenChange={setIsTaskEditDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Task</DialogTitle>
           </DialogHeader>
@@ -251,6 +277,224 @@ export default function NextActions() {
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={taskForm.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select value={field.value || ""} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-task-status">
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={TaskStatus.INBOX}>Inbox</SelectItem>
+                        <SelectItem value={TaskStatus.NEXT_ACTION}>Next Action</SelectItem>
+                        <SelectItem value={TaskStatus.WAITING}>Waiting For</SelectItem>
+                        <SelectItem value={TaskStatus.SOMEDAY}>Someday/Maybe</SelectItem>
+                        <SelectItem value={TaskStatus.REFERENCE}>Reference</SelectItem>
+                        <SelectItem value={TaskStatus.DONE}>Done</SelectItem>
+                        <SelectItem value={TaskStatus.TRASH}>Trash</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={taskForm.control}
+                name="contextId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Context</FormLabel>
+                    <Select value={field.value?.toString() || ""} onValueChange={(val) => field.onChange(val ? Number(val) : null)}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-task-context">
+                          <SelectValue placeholder="Select context" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="">No context</SelectItem>
+                        {contexts?.map((ctx) => (
+                          <SelectItem key={ctx.id} value={ctx.id.toString()}>
+                            {ctx.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={taskForm.control}
+                name="projectId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Project</FormLabel>
+                    <Select value={field.value?.toString() || ""} onValueChange={(val) => field.onChange(val ? Number(val) : null)}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-task-project">
+                          <SelectValue placeholder="Select project" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="">No project</SelectItem>
+                        {projects?.map((proj) => (
+                          <SelectItem key={proj.id} value={proj.id.toString()}>
+                            {proj.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={taskForm.control}
+                name="timeEstimate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Time Estimate</FormLabel>
+                    <Select value={field.value || ""} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-time-estimate">
+                          <SelectValue placeholder="Select time estimate" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value={TimeEstimate.MINUTES_15}>15 minutes</SelectItem>
+                        <SelectItem value={TimeEstimate.MINUTES_30}>30 minutes</SelectItem>
+                        <SelectItem value={TimeEstimate.HOUR_1}>1 hour</SelectItem>
+                        <SelectItem value={TimeEstimate.HOURS_2_PLUS}>2+ hours</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={taskForm.control}
+                name="energyLevel"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Energy Level</FormLabel>
+                    <Select value={field.value || ""} onValueChange={field.onChange}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-energy-level">
+                          <SelectValue placeholder="Select energy level" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value={EnergyLevel.HIGH}>High</SelectItem>
+                        <SelectItem value={EnergyLevel.MEDIUM}>Medium</SelectItem>
+                        <SelectItem value={EnergyLevel.LOW}>Low</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={taskForm.control}
+                name="dueDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Due Date</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="date" 
+                        {...field}
+                        value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : ''}
+                        onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)}
+                        data-testid="input-due-date"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {taskForm.watch("status") === TaskStatus.WAITING && (
+                <>
+                  <FormField
+                    control={taskForm.control}
+                    name="waitingFor"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Waiting For</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Person or resource" data-testid="input-waiting-for" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={taskForm.control}
+                    name="waitingForFollowUp"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Follow-up Date</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="date" 
+                            {...field}
+                            value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : ''}
+                            onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)}
+                            data-testid="input-followup-date"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
+
+              {taskForm.watch("status") === TaskStatus.REFERENCE && (
+                <FormField
+                  control={taskForm.control}
+                  name="referenceCategory"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Reference Category</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., Health, Finance, Contacts" data-testid="input-reference-category" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {taskForm.watch("status") === TaskStatus.SOMEDAY && (
+                <FormField
+                  control={taskForm.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Notes</FormLabel>
+                      <FormControl>
+                        <Textarea {...field} placeholder="Notes for this someday/maybe item" data-testid="textarea-someday-notes" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <Button type="submit" disabled={updateTask.isPending} data-testid="button-submit-task-edit">
                 {updateTask.isPending ? "Saving..." : "Save Task"}
