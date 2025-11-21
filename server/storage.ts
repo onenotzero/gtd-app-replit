@@ -59,6 +59,76 @@ export class MemStorage implements IStorage {
     this.createContext({ name: "@work", color: "#2196F3" });
     this.createContext({ name: "@computer", color: "#9C27B0" });
     this.createContext({ name: "@phone", color: "#F44336" });
+
+    // Add seed projects
+    this.createProject({ name: "Website Redesign", description: "Update company website with new branding", isActive: true });
+    this.createProject({ name: "Q4 Planning", description: "Strategic planning for Q4 initiatives", isActive: true });
+    this.createProject({ name: "Team Training", description: "Onboard new team members and provide training", isActive: true });
+    this.createProject({ name: "Bug Fixes", description: "Address critical bugs in production", isActive: true });
+    this.createProject({ name: "Documentation", description: "Update system and API documentation", isActive: true });
+
+    // Add seed inbox items
+    this.createTask({
+      title: "Review budget proposal",
+      description: "Check Q4 budget allocation from finance team",
+      status: TaskStatus.INBOX,
+    });
+    this.createTask({
+      title: "Reply to client email",
+      description: "Follow up on contract negotiation",
+      status: TaskStatus.INBOX,
+    });
+    this.createTask({
+      title: "Schedule team meeting",
+      description: "Set up weekly sync with project team",
+      status: TaskStatus.INBOX,
+    });
+    this.createTask({
+      title: "Update project status",
+      description: "Send weekly status report to stakeholders",
+      status: TaskStatus.INBOX,
+    });
+    this.createTask({
+      title: "Review pull requests",
+      description: "Check pending code reviews from team",
+      status: TaskStatus.INBOX,
+    });
+
+    // Add seed next action items - one per context
+    this.createTask({
+      title: "Buy groceries for dinner",
+      description: "Pick up ingredients for meal prep",
+      status: TaskStatus.NEXT_ACTION,
+      contextId: 1, // @home
+      timeEstimate: "30min",
+      energyLevel: "low",
+    });
+    this.createTask({
+      title: "Prepare presentation slides",
+      description: "Create slides for client meeting",
+      status: TaskStatus.NEXT_ACTION,
+      contextId: 2, // @work
+      projectId: 1,
+      timeEstimate: "1hr",
+      energyLevel: "medium",
+    });
+    this.createTask({
+      title: "Debug login form issue",
+      description: "Fix authentication timeout error",
+      status: TaskStatus.NEXT_ACTION,
+      contextId: 3, // @computer
+      projectId: 4,
+      timeEstimate: "1hr",
+      energyLevel: "high",
+    });
+    this.createTask({
+      title: "Call dentist for appointment",
+      description: "Schedule routine cleaning",
+      status: TaskStatus.NEXT_ACTION,
+      contextId: 4, // @phone
+      timeEstimate: "15min",
+      energyLevel: "low",
+    });
   }
 
   // Tasks
