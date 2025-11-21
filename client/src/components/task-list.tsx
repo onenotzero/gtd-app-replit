@@ -53,7 +53,11 @@ export default function TaskList({
         {tasks.map((task) => (
           <Card key={task.id}>
             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-              <div>
+              <div 
+                className={onEdit ? "cursor-pointer hover:opacity-70 transition-opacity" : ""}
+                onClick={() => onEdit && onEdit(task)}
+                data-testid="task-title-editable"
+              >
                 <CardTitle className="text-lg">{task.title}</CardTitle>
                 <CardDescription>
                   {task.description}

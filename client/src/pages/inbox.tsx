@@ -47,7 +47,7 @@ export default function Inbox() {
 
       if (action === "trash") {
         if (itemType === "task") {
-          await apiRequest("DELETE", `/api/tasks/${itemId}`);
+          await apiRequest("PATCH", `/api/tasks/${itemId}`, { status: TaskStatus.TRASH });
         } else {
           await apiRequest("DELETE", `/api/emails/${itemId}`);
         }
@@ -110,6 +110,9 @@ export default function Inbox() {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks/status/inbox"] });
       queryClient.invalidateQueries({ queryKey: ["/api/tasks/status/next_action"] });
       queryClient.invalidateQueries({ queryKey: ["/api/tasks/status/waiting"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks/status/trash"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks/status/someday"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks/status/reference"] });
       queryClient.invalidateQueries({ queryKey: ["/api/emails"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       toast({

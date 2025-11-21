@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { TaskStatus, type Task, type Context, type Project, type InsertContext, insertContextSchema } from "@shared/schema";
+import { TaskStatus, type Task, type Context, type Project, type InsertContext, type InsertTask, insertContextSchema, insertTaskSchema } from "@shared/schema";
 import TaskList from "@/components/task-list";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Plus, Edit2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,6 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 export default function NextActions() {
   const [isContextDialogOpen, setIsContextDialogOpen] = useState(false);
   const [editingContextId, setEditingContextId] = useState<number | null>(null);
+  const [isTaskEditDialogOpen, setIsTaskEditDialogOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const { toast } = useToast();
 
   const { data: tasks } = useQuery<Task[]>({
@@ -30,11 +33,20 @@ export default function NextActions() {
     queryKey: ["/api/projects"],
   });
 
-  const form = useForm({
+  const contextForm = useForm({
     resolver: zodResolver(insertContextSchema),
     defaultValues: {
       name: "",
       color: "#4CAF50",
+    },
+  });
+
+  const taskForm = useForm({
+    resolver: zodResolver(insertTaskSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      status: TaskStatus.NEXT_ACTION,
     },
   });
 
@@ -46,7 +58,7 @@ export default function NextActions() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/contexts"] });
       setIsContextDialogOpen(false);
-      form.reset();
+      contextForm.reset();
       toast({
         title: "Context created",
         description: "New context has been added",
@@ -61,8 +73,48 @@ export default function NextActions() {
     },
   });
 
+  const updateTask = useMutation({
+    mutationFn: async (task: Partial<Task>) => {
+      if (!editingTask) return;
+      const res = await apiRequest("PATCH", `/api/tasks/${editingTask.id}`, task);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks/status/next_action"] });
+      setIsTaskEditDialogOpen(false);
+      setEditingTask(null);
+      taskForm.reset();
+      toast({
+        title: "Task updated",
+        description: "Task has been updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to update task",
+        description: error.message || "An error occurred while updating the task",
+        variant: "destructive",
+      });
+    },
+  });
+
   const getTasksByContext = (contextId: number) => {
     return tasks?.filter((task) => task.contextId === contextId) || [];
+  };
+
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task);
+    taskForm.reset({
+      title: task.title,
+      description: task.description || "",
+      status: task.status as any,
+    });
+    setIsTaskEditDialogOpen(true);
+  };
+
+  const handleTaskSubmit = (data: Partial<InsertTask>) => {
+    updateTask.mutate(data);
   };
 
   return (
@@ -98,6 +150,7 @@ export default function NextActions() {
             tasks={tasks || []}
             contexts={contexts}
             projects={projects}
+            onEdit={handleEditTask}
           />
         </TabsContent>
 
@@ -107,6 +160,7 @@ export default function NextActions() {
               tasks={getTasksByContext(context.id)}
               contexts={contexts}
               projects={projects}
+              onEdit={handleEditTask}
             />
           </TabsContent>
         ))}
@@ -117,15 +171,15 @@ export default function NextActions() {
           <DialogHeader>
             <DialogTitle>Create Context</DialogTitle>
           </DialogHeader>
-          <Form {...form}>
+          <Form {...contextForm}>
             <form
-              onSubmit={form.handleSubmit((data) => {
+              onSubmit={contextForm.handleSubmit((data) => {
                 createContext.mutate(data);
               })}
               className="space-y-4"
             >
               <FormField
-                control={form.control}
+                control={contextForm.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
@@ -139,7 +193,7 @@ export default function NextActions() {
               />
 
               <FormField
-                control={form.control}
+                control={contextForm.control}
                 name="color"
                 render={({ field }) => (
                   <FormItem>
@@ -154,6 +208,52 @@ export default function NextActions() {
 
               <Button type="submit" disabled={createContext.isPending} data-testid="button-submit-context">
                 {createContext.isPending ? "Creating..." : "Create Context"}
+              </Button>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isTaskEditDialogOpen} onOpenChange={setIsTaskEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Task</DialogTitle>
+          </DialogHeader>
+          <Form {...taskForm}>
+            <form
+              onSubmit={taskForm.handleSubmit(handleTaskSubmit)}
+              className="space-y-4"
+            >
+              <FormField
+                control={taskForm.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Title</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Task title" data-testid="input-task-title" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={taskForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} placeholder="Task description" data-testid="textarea-task-description" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <Button type="submit" disabled={updateTask.isPending} data-testid="button-submit-task-edit">
+                {updateTask.isPending ? "Saving..." : "Save Task"}
               </Button>
             </form>
           </Form>

@@ -10,6 +10,7 @@ export const TaskStatus = {
   SOMEDAY: "someday",
   REFERENCE: "reference",
   DONE: "done",
+  TRASH: "trash",
 } as const;
 
 // Time estimates for tasks
