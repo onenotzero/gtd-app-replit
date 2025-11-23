@@ -11,6 +11,7 @@ This is a Getting Things Done (GTD) task management system built with React, Exp
 - Task naming flexibility improved: verb-first naming encouraged but not enforced.
 - Google Calendar integration added with secure API key management via Replit connectors.
 - Navigation restructured: "Waiting For" page added to track delegated tasks; Projects moved to bottom of sidebar navigation.
+- **Mobile-responsive layout**: Application now fully supports mobile devices with a responsive navigation system. On screens below 1024px, the sidebar is hidden and replaced with a fixed header containing a hamburger menu that opens a slide-out navigation drawer. Desktop users continue to see the traditional persistent sidebar. All pages use responsive grid layouts that adapt to different screen sizes.
 
 ## User Preferences
 
@@ -35,6 +36,7 @@ The application follows a feature-based organization with reusable UI components
 - **ProcessingDialog**: Implements the complete GTD decision tree with discrete step-based navigation to prevent form auto-submission. Guides users through: Is it actionable? → Non-actionable (trash/reference/someday) OR Actionable (next action → 2-minute rule → delegate → project → organize). Features full Back button navigation at every step (except the first) with form data preservation, allowing users to revisit decisions without losing their work. Verb-first naming is encouraged via UI hints but not enforced.
 - **Unified Inbox**: Displays combined task and email items with tasks prioritized over emails, FIFO-sorted within each group. Single "Process" button per item launches ProcessingDialog with context-aware processing.
 - **Calendar Integration**: Google Calendar connected via Replit integration for viewing upcoming events within the next 7 days. Supports both timed and all-day events with proper validation.
+- **Responsive Navigation**: SidebarNav component adapts to screen size using Tailwind's lg breakpoint (1024px). Mobile view (< 1024px) shows a fixed header with hamburger menu that opens a Sheet drawer containing navigation items. Desktop view (≥ 1024px) displays a traditional persistent sidebar. Navigation drawer auto-closes on mobile after page selection for better UX.
 
 ### Backend Architecture
 
