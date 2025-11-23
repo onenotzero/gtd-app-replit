@@ -18,7 +18,7 @@ function Router() {
   return (
     <div className="flex h-screen bg-background">
       <SidebarNav />
-      <main className="flex-1 overflow-y-auto p-8">
+      <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 pt-16 lg:pt-8">
         <Switch>
           <Route path="/" component={Dashboard} />
           <Route path="/inbox" component={Inbox} />

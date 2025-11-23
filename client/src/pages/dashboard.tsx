@@ -49,6 +49,13 @@ export default function Dashboard() {
         projectId: null,
         contextId: null,
         emailId: null,
+        deferCount: 0,
+        timeEstimate: null,
+        energyLevel: null,
+        waitingFor: null,
+        waitingForFollowUp: null,
+        referenceCategory: null,
+        notes: null,
       };
       const res = await apiRequest("POST", "/api/tasks", task);
       return res.json();
