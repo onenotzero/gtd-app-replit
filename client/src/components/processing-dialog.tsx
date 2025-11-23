@@ -84,6 +84,7 @@ const projectSchema = z.object({
 
 const organizeSchema = z.object({
   contextId: z.number().optional(),
+  projectId: z.number().optional(),
   timeEstimate: z.string().optional(),
   energyLevel: z.string().optional(),
   dueDate: z.date().optional(),
@@ -134,6 +135,7 @@ export default function ProcessingDialog({
     resolver: zodResolver(organizeSchema),
     defaultValues: {
       contextId: undefined,
+      projectId: undefined,
       timeEstimate: undefined,
       energyLevel: undefined,
       dueDate: undefined,
@@ -257,6 +259,7 @@ export default function ProcessingDialog({
 
   const handleOrganizeSubmit = (data: {
     contextId?: number;
+    projectId?: number;
     timeEstimate?: string;
     energyLevel?: string;
     dueDate?: Date;
@@ -267,6 +270,7 @@ export default function ProcessingDialog({
         title: nextAction,
         status: TaskStatus.NEXT_ACTION,
         contextId: data.contextId,
+        projectId: data.projectId,
         timeEstimate: data.timeEstimate as any,
         energyLevel: data.energyLevel as any,
         dueDate: data.dueDate,
@@ -778,6 +782,35 @@ export default function ProcessingDialog({
                         {contexts.map((context) => (
                           <SelectItem key={context.id} value={context.id.toString()}>
                             {context.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={organizeForm.control}
+                name="projectId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Project (optional)</FormLabel>
+                    <Select
+                      onValueChange={(value) => field.onChange(value === "unset" ? undefined : parseInt(value))}
+                      value={field.value !== undefined ? String(field.value) : "unset"}
+                    >
+                      <FormControl>
+                        <SelectTrigger data-testid="select-project">
+                          <SelectValue placeholder="Select a project" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="unset">None</SelectItem>
+                        {projects.map((project) => (
+                          <SelectItem key={project.id} value={project.id.toString()}>
+                            {project.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
