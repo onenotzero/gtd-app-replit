@@ -34,6 +34,7 @@ import { CalendarIcon, Trash2, Archive, Clock, UserPlus, FolderPlus } from "luci
 import { format } from "date-fns";
 import { TaskStatus, TimeEstimate, EnergyLevel, type Task, type Email, type Context, type Project } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import CircularTimer from "@/components/circular-timer";
 
 type ProcessingStep =
   | "actionable"
@@ -105,6 +106,7 @@ export default function ProcessingDialog({
   const [somedayNotes, setSomedayNotes] = useState("");
   const [nextAction, setNextAction] = useState("");
   const [isDoNow, setIsDoNow] = useState(false);
+  const [isTimerActive, setIsTimerActive] = useState(false);
   const [shouldDelegate, setShouldDelegate] = useState(false);
   const [shouldCreateProject, setShouldCreateProject] = useState(false);
   const [delegateData, setDelegateData] = useState<{ waitingFor: string; followUpDate: Date } | null>(null);
@@ -213,11 +215,15 @@ export default function ProcessingDialog({
   const handleTwoMinuteChoice = (doNow: boolean) => {
     if (doNow) {
       setIsDoNow(true);
-      onProcess({ action: "do-now" });
-      resetDialog();
+      setIsTimerActive(true);
     } else {
       navigateToStep("delegate-choice");
     }
+  };
+
+  const handleTimerComplete = () => {
+    onProcess({ action: "do-now" });
+    resetDialog();
   };
 
   const handleDelegateChoice = (delegate: boolean) => {
@@ -298,6 +304,7 @@ export default function ProcessingDialog({
     setSomedayNotes("");
     setNextAction("");
     setIsDoNow(false);
+    setIsTimerActive(false);
     setShouldDelegate(false);
     setShouldCreateProject(false);
     setDelegateData(null);
@@ -513,7 +520,7 @@ export default function ProcessingDialog({
           </Form>
         )}
 
-        {step === "two-minute" && (
+        {step === "two-minute" && !isTimerActive && (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Will it take less than 2 minutes?</h3>
             <p className="text-sm text-muted-foreground">
@@ -543,6 +550,37 @@ export default function ProcessingDialog({
             >
               Back
             </Button>
+          </div>
+        )}
+
+        {step === "two-minute" && isTimerActive && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Complete the task in 2 minutes</h3>
+            <p className="text-sm text-muted-foreground">
+              Timer started - finish up and mark complete when done.
+            </p>
+            <CircularTimer duration={120} onComplete={handleTimerComplete} />
+            <div className="flex gap-3">
+              <Button
+                onClick={handleTimerComplete}
+                className="flex-1"
+                data-testid="button-done"
+              >
+                Done
+              </Button>
+              <Button
+                onClick={() => {
+                  setIsTimerActive(false);
+                  setIsDoNow(false);
+                  navigateToStep("delegate-choice");
+                }}
+                variant="outline"
+                className="flex-1"
+                data-testid="button-cancel"
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
         )}
 
