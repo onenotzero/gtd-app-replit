@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
 interface CircularTimerProps {
-  duration?: number; // in seconds, default 120 (2 minutes)
+  duration?: number;
   onComplete?: () => void;
 }
 
@@ -29,51 +29,30 @@ export default function CircularTimer({ duration = 120, onComplete }: CircularTi
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
-  const progress = (duration - timeLeft) / duration;
-  const circumference = 2 * Math.PI * 45;
-  const strokeDashoffset = circumference * (1 - progress);
-
-  // Calculate number of ticks (12 ticks for a clock)
+  const elapsed = duration - timeLeft;
   const totalTicks = 12;
-  const activeTicks = Math.ceil(totalTicks * (1 - progress));
+  const activeTicks = Math.floor((elapsed / duration) * totalTicks);
 
   return (
-    <div className="flex flex-col items-center justify-center py-8">
-      <svg width="120" height="120" className="relative">
-        {/* Background circle */}
+    <div className="flex flex-col items-center justify-center py-6">
+      <svg width="140" height="140" viewBox="0 0 140 140">
         <circle
-          cx="60"
-          cy="60"
-          r="45"
+          cx="70"
+          cy="70"
+          r="55"
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
           className="text-muted-foreground/20"
         />
 
-        {/* Progress circle */}
-        <circle
-          cx="60"
-          cy="60"
-          r="45"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="3"
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          className="text-primary transition-all duration-1000"
-          strokeLinecap="round"
-          style={{ transform: "rotate(-90deg)", transformOrigin: "60px 60px" }}
-        />
-
-        {/* Ticks */}
         {Array.from({ length: totalTicks }).map((_, i) => {
-          const angle = (i / totalTicks) * 360;
+          const angle = (i / totalTicks) * 360 - 90;
           const isActive = i < activeTicks;
-          const x1 = 60 + 38 * Math.cos((angle - 90) * (Math.PI / 180));
-          const y1 = 60 + 38 * Math.sin((angle - 90) * (Math.PI / 180));
-          const x2 = 60 + 45 * Math.cos((angle - 90) * (Math.PI / 180));
-          const y2 = 60 + 45 * Math.sin((angle - 90) * (Math.PI / 180));
+          const x1 = 70 + 45 * Math.cos(angle * (Math.PI / 180));
+          const y1 = 70 + 45 * Math.sin(angle * (Math.PI / 180));
+          const x2 = 70 + 55 * Math.cos(angle * (Math.PI / 180));
+          const y2 = 70 + 55 * Math.sin(angle * (Math.PI / 180));
 
           return (
             <line
@@ -82,22 +61,19 @@ export default function CircularTimer({ duration = 120, onComplete }: CircularTi
               y1={y1}
               x2={x2}
               y2={y2}
-              stroke={isActive ? "currentColor" : "currentColor"}
-              strokeWidth={isActive ? 2.5 : 1.5}
-              className={isActive ? "text-primary" : "text-muted-foreground/30"}
+              strokeWidth={2}
+              className={isActive ? "stroke-primary" : "stroke-muted-foreground/30"}
             />
           );
         })}
 
-        {/* Time text */}
         <text
-          x="60"
-          y="70"
+          x="70"
+          y="78"
           textAnchor="middle"
-          fontSize="24"
+          fontSize="28"
           fontWeight="bold"
-          fill="currentColor"
-          className="text-foreground"
+          className="fill-foreground"
         >
           {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
         </text>
