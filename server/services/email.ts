@@ -97,14 +97,25 @@ export class EmailService {
     }
   }
 
-  static async sendEmail(to: string, subject: string, text: string, html?: string) {
+  static async sendEmail(
+    to: string | string[],
+    subject: string,
+    text: string,
+    html?: string,
+    cc?: string | string[],
+    bcc?: string | string[],
+    attachments?: any[]
+  ) {
     try {
       await transporter.sendMail({
         from: process.env.EMAIL_ADDRESS,
-        to,
+        to: Array.isArray(to) ? to.join(', ') : to,
+        cc: cc ? (Array.isArray(cc) ? cc.join(', ') : cc) : undefined,
+        bcc: bcc ? (Array.isArray(bcc) ? bcc.join(', ') : bcc) : undefined,
         subject,
         text,
-        html
+        html,
+        attachments
       });
     } catch (error) {
       console.error('Error sending email:', error);
@@ -131,5 +142,106 @@ export class EmailService {
       console.error('Error marking email as read:', error);
       throw error;
     }
+  }
+
+  static async moveEmailToFolder(messageId: string, targetFolder: string) {
+    try {
+      const connection = await ImapSimple.connect(config);
+      await connection.openBox('INBOX');
+
+      const searchCriteria = ['ALL'];
+      const fetchOptions = { bodies: ['HEADER'] };
+      const messages = await connection.search(searchCriteria, fetchOptions);
+
+      const message = messages.find(msg => msg.attributes.uid.toString() === messageId);
+      if (message) {
+        await connection.moveMessage(message.attributes.uid, targetFolder);
+      }
+
+      connection.end();
+    } catch (error) {
+      console.error('Error moving email:', error);
+      throw error;
+    }
+  }
+
+  static async archiveEmail(messageId: string) {
+    return this.moveEmailToFolder(messageId, 'Archive');
+  }
+
+  static async deleteEmail(messageId: string) {
+    try {
+      const connection = await ImapSimple.connect(config);
+      await connection.openBox('INBOX');
+
+      const searchCriteria = ['ALL'];
+      const fetchOptions = { bodies: ['HEADER'] };
+      const messages = await connection.search(searchCriteria, fetchOptions);
+
+      const message = messages.find(msg => msg.attributes.uid.toString() === messageId);
+      if (message) {
+        await connection.addFlags(message.attributes.uid, ['\\Deleted']);
+        await connection.expunge();
+      }
+
+      connection.end();
+    } catch (error) {
+      console.error('Error deleting email:', error);
+      throw error;
+    }
+  }
+
+  static async replyToEmail(
+    originalEmail: { sender: string; subject: string; messageId: string },
+    replyText: string,
+    replyHtml?: string,
+    attachments?: any[]
+  ) {
+    const subject = originalEmail.subject.startsWith('Re: ')
+      ? originalEmail.subject
+      : `Re: ${originalEmail.subject}`;
+
+    await this.sendEmail(
+      originalEmail.sender,
+      subject,
+      replyText,
+      replyHtml,
+      undefined,
+      undefined,
+      attachments
+    );
+
+    await this.markEmailAsRead(originalEmail.messageId);
+  }
+
+  static async forwardEmail(
+    originalEmail: { subject: string; content: string; sender: string },
+    forwardTo: string | string[],
+    additionalText?: string,
+    attachments?: any[]
+  ) {
+    const subject = originalEmail.subject.startsWith('Fwd: ')
+      ? originalEmail.subject
+      : `Fwd: ${originalEmail.subject}`;
+
+    const forwardedContent = `
+${additionalText || ''}
+
+---------- Forwarded message ---------
+From: ${originalEmail.sender}
+Subject: ${originalEmail.subject}
+
+${originalEmail.content}
+    `;
+
+    await this.sendEmail(
+      forwardTo,
+      subject,
+      forwardedContent,
+      undefined,
+      undefined,
+      undefined,
+      attachments
+    );
   }
 }

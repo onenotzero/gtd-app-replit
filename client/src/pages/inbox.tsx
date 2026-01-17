@@ -5,9 +5,11 @@ import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import ProcessingDialog, { type ProcessingResult } from "@/components/processing-dialog";
+import EmailViewer from "@/components/email-viewer";
+import EmailComposer from "@/components/email-composer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Inbox as InboxIcon, Mail, CheckSquare, Paperclip } from "lucide-react";
+import { Inbox as InboxIcon, Mail, CheckSquare, Paperclip, PenSquare, Eye } from "lucide-react";
 import { format } from "date-fns";
 
 type InboxItem = {
@@ -22,6 +24,11 @@ export default function Inbox() {
   const { toast } = useToast();
   const [isProcessingDialogOpen, setIsProcessingDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InboxItem | null>(null);
+  const [viewingEmail, setViewingEmail] = useState<Email | null>(null);
+  const [isEmailViewerOpen, setIsEmailViewerOpen] = useState(false);
+  const [isComposerOpen, setIsComposerOpen] = useState(false);
+  const [composerMode, setComposerMode] = useState<"new" | "reply" | "forward">("new");
+  const [composerEmail, setComposerEmail] = useState<Email | undefined>(undefined);
 
   const { data: tasks = [] } = useQuery<Task[]>({
     queryKey: ["/api/tasks/status/inbox"],
@@ -127,12 +134,35 @@ export default function Inbox() {
     setIsProcessingDialogOpen(true);
   };
 
+  const handleViewEmail = (email: Email) => {
+    setViewingEmail(email);
+    setIsEmailViewerOpen(true);
+  };
+
+  const handleReply = (email: Email) => {
+    setComposerMode("reply");
+    setComposerEmail(email);
+    setIsComposerOpen(true);
+  };
+
+  const handleForward = (email: Email) => {
+    setComposerMode("forward");
+    setComposerEmail(email);
+    setIsComposerOpen(true);
+  };
+
+  const handleComposeNew = () => {
+    setComposerMode("new");
+    setComposerEmail(undefined);
+    setIsComposerOpen(true);
+  };
+
   const handleProcessingComplete = (result: ProcessingResult) => {
     if (selectedItem) {
-      const itemId = selectedItem.type === "task" 
-        ? (selectedItem.data as Task).id 
+      const itemId = selectedItem.type === "task"
+        ? (selectedItem.data as Task).id
         : (selectedItem.data as Email).id;
-      
+
       processItem.mutate({
         ...result,
         itemId,
@@ -170,11 +200,17 @@ export default function Inbox() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Inbox</h2>
-        <p className="text-muted-foreground">
-          Process {totalUnprocessed} {totalUnprocessed === 1 ? 'item' : 'items'}
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Inbox</h2>
+          <p className="text-muted-foreground">
+            Process {totalUnprocessed} {totalUnprocessed === 1 ? 'item' : 'items'}
+          </p>
+        </div>
+        <Button onClick={handleComposeNew}>
+          <PenSquare className="h-4 w-4 mr-2" />
+          Compose
+        </Button>
       </div>
 
       {totalUnprocessed === 0 && (
@@ -246,13 +282,26 @@ export default function Inbox() {
                         </div>
                       </div>
 
-                      <Button
-                        onClick={() => handleProcess(item)}
-                        size="sm"
-                        data-testid={`button-process-${item.id}`}
-                      >
-                        Process
-                      </Button>
+                      <div className="flex gap-2">
+                        {!isTask && email && (
+                          <Button
+                            onClick={() => handleViewEmail(email)}
+                            size="sm"
+                            variant="outline"
+                            data-testid={`button-view-${item.id}`}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
+                        )}
+                        <Button
+                          onClick={() => handleProcess(item)}
+                          size="sm"
+                          data-testid={`button-process-${item.id}`}
+                        >
+                          Process
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -272,6 +321,21 @@ export default function Inbox() {
           onProcess={handleProcessingComplete}
         />
       )}
+
+      <EmailViewer
+        email={viewingEmail}
+        open={isEmailViewerOpen}
+        onOpenChange={setIsEmailViewerOpen}
+        onReply={handleReply}
+        onForward={handleForward}
+      />
+
+      <EmailComposer
+        open={isComposerOpen}
+        onOpenChange={setIsComposerOpen}
+        mode={composerMode}
+        originalEmail={composerEmail}
+      />
     </div>
   );
 }

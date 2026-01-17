@@ -147,14 +147,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/emails/:id", async (req, res) => {
+    try {
+      const emails = await storage.getEmails();
+      const email = emails.find(e => e.id === Number(req.params.id));
+      if (!email) {
+        res.status(404).json({ message: 'Email not found' });
+        return;
+      }
+      res.json(email);
+    } catch (error) {
+      console.error('Error fetching email:', error);
+      res.status(500).json({ message: 'Failed to fetch email' });
+    }
+  });
+
   app.post("/api/emails/send", async (req, res) => {
     try {
-      const { to, subject, text, html } = req.body;
-      await EmailService.sendEmail(to, subject, text, html);
+      const { to, subject, text, html, cc, bcc, attachments } = req.body;
+      await EmailService.sendEmail(to, subject, text, html, cc, bcc, attachments);
       res.json({ message: 'Email sent successfully' });
     } catch (error) {
       console.error('Error sending email:', error);
       res.status(500).json({ message: 'Failed to send email' });
+    }
+  });
+
+  app.post("/api/emails/:id/archive", async (req, res) => {
+    try {
+      const email = await storage.updateEmail(Number(req.params.id), { folder: 'ARCHIVED' });
+      await EmailService.archiveEmail(email.messageId);
+      res.json(email);
+    } catch (error) {
+      console.error('Error archiving email:', error);
+      res.status(500).json({ message: 'Failed to archive email' });
+    }
+  });
+
+  app.post("/api/emails/:id/move", async (req, res) => {
+    try {
+      const { folder } = req.body;
+      const email = await storage.updateEmail(Number(req.params.id), { folder });
+      await EmailService.moveEmailToFolder(email.messageId, folder);
+      res.json(email);
+    } catch (error) {
+      console.error('Error moving email:', error);
+      res.status(500).json({ message: 'Failed to move email' });
+    }
+  });
+
+  app.post("/api/emails/:id/reply", async (req, res) => {
+    try {
+      const emails = await storage.getEmails();
+      const email = emails.find(e => e.id === Number(req.params.id));
+      if (!email) {
+        res.status(404).json({ message: 'Email not found' });
+        return;
+      }
+
+      const { text, html, attachments } = req.body;
+      await EmailService.replyToEmail(
+        {
+          sender: email.sender,
+          subject: email.subject,
+          messageId: email.messageId
+        },
+        text,
+        html,
+        attachments
+      );
+
+      res.json({ message: 'Reply sent successfully' });
+    } catch (error) {
+      console.error('Error replying to email:', error);
+      res.status(500).json({ message: 'Failed to send reply' });
+    }
+  });
+
+  app.post("/api/emails/:id/forward", async (req, res) => {
+    try {
+      const emails = await storage.getEmails();
+      const email = emails.find(e => e.id === Number(req.params.id));
+      if (!email) {
+        res.status(404).json({ message: 'Email not found' });
+        return;
+      }
+
+      const { to, additionalText, attachments } = req.body;
+      await EmailService.forwardEmail(
+        {
+          subject: email.subject,
+          content: email.content,
+          sender: email.sender
+        },
+        to,
+        additionalText,
+        attachments
+      );
+
+      res.json({ message: 'Email forwarded successfully' });
+    } catch (error) {
+      console.error('Error forwarding email:', error);
+      res.status(500).json({ message: 'Failed to forward email' });
     }
   });
 
