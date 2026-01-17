@@ -21,6 +21,8 @@ import {
   Lightbulb,
   Trash2,
   Menu,
+  CheckCircle2,
+  Tag,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Task, Email, TaskStatus } from "@shared/schema";
@@ -32,6 +34,8 @@ const mainNavItems = [
   { href: "/waiting-for", label: "Waiting For", icon: Clock },
   { href: "/calendar", label: "Calendar", icon: Calendar },
   { href: "/projects", label: "Projects", icon: FolderOpen },
+  { href: "/done", label: "Done", icon: CheckCircle2 },
+  { href: "/contexts", label: "Contexts", icon: Tag },
 ];
 
 const containerItems = [
