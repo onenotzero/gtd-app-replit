@@ -1,4 +1,4 @@
-import { Task, Context, Project } from "@shared/schema";
+import { Task, Context, Project, TaskStatus } from "@shared/schema";
 import {
   Card,
   CardContent,
@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,6 +27,8 @@ interface TaskListProps {
   projects?: Project[];
   onEdit?: (task: Task) => void;
   onDelete?: (taskId: number) => void;
+  onMarkDone?: (taskId: number) => void;
+  showCheckbox?: boolean;
 }
 
 export default function TaskList({
@@ -34,6 +37,8 @@ export default function TaskList({
   projects,
   onEdit,
   onDelete,
+  onMarkDone,
+  showCheckbox = true,
 }: TaskListProps) {
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
 
@@ -53,15 +58,28 @@ export default function TaskList({
         {tasks.map((task) => (
           <Card key={task.id}>
             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-              <div 
-                className={onEdit ? "cursor-pointer hover:opacity-70 transition-opacity" : ""}
-                onClick={() => onEdit && onEdit(task)}
-                data-testid="task-title-editable"
-              >
-                <CardTitle className="text-lg">{task.title}</CardTitle>
-                <CardDescription>
-                  {task.description}
-                </CardDescription>
+              <div className="flex items-start gap-3 flex-1">
+                {showCheckbox && onMarkDone && task.status !== TaskStatus.DONE && (
+                  <Checkbox
+                    className="mt-1"
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        onMarkDone(task.id);
+                      }
+                    }}
+                    data-testid="checkbox-mark-done"
+                  />
+                )}
+                <div 
+                  className={onEdit ? "cursor-pointer hover:opacity-70 transition-opacity flex-1" : "flex-1"}
+                  onClick={() => onEdit && onEdit(task)}
+                  data-testid="task-title-editable"
+                >
+                  <CardTitle className="text-lg">{task.title}</CardTitle>
+                  <CardDescription>
+                    {task.description}
+                  </CardDescription>
+                </div>
               </div>
               <div className="flex gap-2">
                 {onEdit && (
@@ -87,7 +105,7 @@ export default function TaskList({
               </div>
             </CardHeader>
             <CardContent>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Badge variant="secondary">{task.status}</Badge>
                 {task.contextId && (
                   <Badge variant="outline">
@@ -98,6 +116,12 @@ export default function TaskList({
                   <Badge variant="outline">
                     {getProjectName(task.projectId)}
                   </Badge>
+                )}
+                {task.timeEstimate && (
+                  <Badge variant="outline">{task.timeEstimate}</Badge>
+                )}
+                {task.energyLevel && (
+                  <Badge variant="outline">{task.energyLevel} energy</Badge>
                 )}
               </div>
             </CardContent>

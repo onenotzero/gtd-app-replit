@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { TaskStatus, TimeEstimate, EnergyLevel, type Project, type Task, type Context, insertProjectSchema, insertTaskSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -28,11 +28,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import TaskList from "@/components/task-list";
-import { Trash2, Edit } from "lucide-react";
+import { Trash2, Check, X } from "lucide-react";
 import { z } from "zod";
 
 export default function Projects() {
@@ -41,6 +42,9 @@ export default function Projects() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isTaskEditDialogOpen, setIsTaskEditDialogOpen] = useState(false);
+  const [editingProjectId, setEditingProjectId] = useState<number | null>(null);
+  const [editingProjectName, setEditingProjectName] = useState("");
+  const editInputRef = useRef<HTMLInputElement>(null);
 
   const { data: projects } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
@@ -71,24 +75,33 @@ export default function Projects() {
     waitingForFollowUp: z.coerce.date().nullable().optional(),
   });
 
-  const taskForm = useForm({
+  const taskForm = useForm<any>({
     resolver: zodResolver(taskEditSchema),
     defaultValues: {
       title: "",
       description: "",
       status: TaskStatus.NEXT_ACTION,
-      contextId: null,
-      projectId: null,
+      contextId: null as number | null,
+      projectId: null as number | null,
       timeEstimate: undefined,
       energyLevel: undefined,
       waitingFor: "",
       referenceCategory: "",
       notes: "",
+      dueDate: undefined,
+      waitingForFollowUp: undefined,
     },
   });
 
+  useEffect(() => {
+    if (editingProjectId && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.select();
+    }
+  }, [editingProjectId]);
+
   const createProject = useMutation({
-    mutationFn: async (project) => {
+    mutationFn: async (project: any) => {
       const res = await apiRequest("POST", "/api/projects", project);
       return res.json();
     },
@@ -104,7 +117,7 @@ export default function Projects() {
   });
 
   const updateProject = useMutation({
-    mutationFn: async ({ id, ...project }) => {
+    mutationFn: async ({ id, ...project }: { id: number; [key: string]: any }) => {
       const res = await apiRequest("PATCH", `/api/projects/${id}`, project);
       return res.json();
     },
@@ -112,6 +125,7 @@ export default function Projects() {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       setIsProjectDialogOpen(false);
       setSelectedProject(null);
+      setEditingProjectId(null);
       form.reset();
       toast({
         title: "Project updated",
@@ -158,10 +172,59 @@ export default function Projects() {
     },
   });
 
+  const markTaskDone = useMutation({
+    mutationFn: async (taskId: number) => {
+      const res = await apiRequest("PATCH", `/api/tasks/${taskId}`, { status: TaskStatus.DONE });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      toast({
+        title: "Task completed",
+        description: "Task has been marked as done",
+      });
+    },
+  });
+
+  const markProjectDone = useMutation({
+    mutationFn: async (projectId: number) => {
+      const res = await apiRequest("PATCH", `/api/projects/${projectId}`, { isActive: false });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      toast({
+        title: "Project completed",
+        description: "Project has been marked as done",
+      });
+    },
+  });
+
   const handleEditProject = (project: Project) => {
     setSelectedProject(project);
-    form.reset(project);
+    form.reset({
+      name: project.name,
+      description: project.description || "",
+      isActive: project.isActive,
+    });
     setIsProjectDialogOpen(true);
+  };
+
+  const handleInlineEditProject = (project: Project) => {
+    setEditingProjectId(project.id);
+    setEditingProjectName(project.name);
+  };
+
+  const handleSaveInlineEdit = () => {
+    if (editingProjectId && editingProjectName.trim()) {
+      updateProject.mutate({ id: editingProjectId, name: editingProjectName.trim() });
+    }
+    setEditingProjectId(null);
+  };
+
+  const handleCancelInlineEdit = () => {
+    setEditingProjectId(null);
+    setEditingProjectName("");
   };
 
   const handleEditTask = (task: Task) => {
@@ -169,17 +232,17 @@ export default function Projects() {
     taskForm.reset({
       title: task.title,
       description: task.description || "",
-      status: task.status,
-      contextId: task.contextId || null,
-      projectId: task.projectId || null,
-      timeEstimate: task.timeEstimate,
-      energyLevel: task.energyLevel,
+      status: task.status as any,
+      contextId: task.contextId as any,
+      projectId: task.projectId as any,
+      timeEstimate: task.timeEstimate || undefined,
+      energyLevel: task.energyLevel || undefined,
       waitingFor: task.waitingFor || "",
-      waitingForFollowUp: task.waitingForFollowUp ? new Date(task.waitingForFollowUp) : null,
+      waitingForFollowUp: task.waitingForFollowUp ? new Date(task.waitingForFollowUp) : undefined,
       referenceCategory: task.referenceCategory || "",
       notes: task.notes || "",
-      dueDate: task.dueDate ? new Date(task.dueDate) : null,
-    });
+      dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+    } as any);
     setIsTaskEditDialogOpen(true);
   };
 
@@ -188,7 +251,7 @@ export default function Projects() {
   };
 
   const getProjectTasks = (projectId: number) => {
-    return tasks?.filter((task) => task.projectId === projectId) || [];
+    return tasks?.filter((task) => task.projectId === projectId && task.status !== TaskStatus.DONE) || [];
   };
 
   return (
@@ -206,21 +269,55 @@ export default function Projects() {
       </div>
 
       <div className="grid gap-6">
-        {projects?.map((project) => (
+        {projects?.filter(p => p.isActive).map((project) => (
           <Card key={project.id}>
             <CardHeader className="flex flex-row items-start justify-between space-y-0">
-              <div>
-                <CardTitle>{project.name}</CardTitle>
-                <CardDescription>{project.description}</CardDescription>
+              <div className="flex items-start gap-3 flex-1">
+                <Checkbox
+                  className="mt-1"
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      markProjectDone.mutate(project.id);
+                    }
+                  }}
+                  data-testid="checkbox-project-done"
+                />
+                <div className="flex-1">
+                  {editingProjectId === project.id ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        ref={editInputRef}
+                        value={editingProjectName}
+                        onChange={(e) => setEditingProjectName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSaveInlineEdit();
+                          if (e.key === "Escape") handleCancelInlineEdit();
+                        }}
+                        className="text-lg font-semibold"
+                        data-testid="input-project-name-inline"
+                      />
+                      <Button size="sm" variant="ghost" onClick={handleSaveInlineEdit}>
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={handleCancelInlineEdit}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <CardTitle 
+                        className="cursor-pointer hover:opacity-70 transition-opacity"
+                        onClick={() => handleInlineEditProject(project)}
+                        data-testid="project-title-editable"
+                      >
+                        {project.name}
+                      </CardTitle>
+                      <CardDescription>{project.description}</CardDescription>
+                    </>
+                  )}
+                </div>
               </div>
               <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleEditProject(project)}
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -231,7 +328,13 @@ export default function Projects() {
               </div>
             </CardHeader>
             <CardContent>
-              <TaskList tasks={getProjectTasks(project.id)} contexts={contexts} projects={projects} onEdit={handleEditTask} />
+              <TaskList 
+                tasks={getProjectTasks(project.id)} 
+                contexts={contexts} 
+                projects={projects} 
+                onEdit={handleEditTask}
+                onMarkDone={(taskId) => markTaskDone.mutate(taskId)}
+              />
             </CardContent>
           </Card>
         ))}
@@ -276,7 +379,7 @@ export default function Projects() {
                   <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Textarea {...field} />
+                      <Textarea {...field} value={field.value || ""} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -322,7 +425,7 @@ export default function Projects() {
                   <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Textarea {...field} placeholder="Task description" data-testid="textarea-task-description" />
+                      <Textarea {...field} placeholder="Task description" data-testid="textarea-task-description" value={field.value || ""} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -464,7 +567,6 @@ export default function Projects() {
                     <FormControl>
                       <Input 
                         type="date" 
-                        {...field}
                         value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : ''}
                         onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)}
                         data-testid="input-due-date"
@@ -484,7 +586,7 @@ export default function Projects() {
                       <FormItem>
                         <FormLabel>Waiting For</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="Person or resource" data-testid="input-waiting-for" />
+                          <Input {...field} placeholder="Person or resource" data-testid="input-waiting-for" value={field.value || ""} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -500,7 +602,6 @@ export default function Projects() {
                         <FormControl>
                           <Input 
                             type="date" 
-                            {...field}
                             value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : ''}
                             onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)}
                             data-testid="input-followup-date"
@@ -521,7 +622,7 @@ export default function Projects() {
                     <FormItem>
                       <FormLabel>Reference Category</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="e.g., Health, Finance, Contacts" data-testid="input-reference-category" />
+                        <Input {...field} placeholder="e.g., Health, Finance, Contacts" data-testid="input-reference-category" value={field.value || ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -537,7 +638,7 @@ export default function Projects() {
                     <FormItem>
                       <FormLabel>Notes</FormLabel>
                       <FormControl>
-                        <Textarea {...field} placeholder="Notes for this someday/maybe item" data-testid="textarea-someday-notes" />
+                        <Textarea {...field} placeholder="Notes for this someday/maybe item" data-testid="textarea-someday-notes" value={field.value || ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

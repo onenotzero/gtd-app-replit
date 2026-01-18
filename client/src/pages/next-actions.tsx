@@ -51,19 +51,21 @@ export default function NextActions() {
     waitingForFollowUp: z.coerce.date().nullable().optional(),
   });
 
-  const taskForm = useForm({
+  const taskForm = useForm<any>({
     resolver: zodResolver(taskEditSchema),
     defaultValues: {
       title: "",
       description: "",
       status: TaskStatus.NEXT_ACTION,
-      contextId: null,
-      projectId: null,
+      contextId: null as number | null,
+      projectId: null as number | null,
       timeEstimate: undefined,
       energyLevel: undefined,
       waitingFor: "",
       referenceCategory: "",
       notes: "",
+      dueDate: undefined,
+      waitingForFollowUp: undefined,
     },
   });
 
@@ -125,19 +127,34 @@ export default function NextActions() {
     taskForm.reset({
       title: task.title,
       description: task.description || "",
-      status: task.status,
-      contextId: task.contextId || null,
-      projectId: task.projectId || null,
-      timeEstimate: task.timeEstimate,
-      energyLevel: task.energyLevel,
+      status: task.status as any,
+      contextId: task.contextId as any,
+      projectId: task.projectId as any,
+      timeEstimate: task.timeEstimate || undefined,
+      energyLevel: task.energyLevel || undefined,
       waitingFor: task.waitingFor || "",
-      waitingForFollowUp: task.waitingForFollowUp ? new Date(task.waitingForFollowUp) : null,
+      waitingForFollowUp: task.waitingForFollowUp ? new Date(task.waitingForFollowUp) : undefined,
       referenceCategory: task.referenceCategory || "",
       notes: task.notes || "",
-      dueDate: task.dueDate ? new Date(task.dueDate) : null,
-    });
+      dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+    } as any);
     setIsTaskEditDialogOpen(true);
   };
+
+  const markTaskDone = useMutation({
+    mutationFn: async (taskId: number) => {
+      const res = await apiRequest("PATCH", `/api/tasks/${taskId}`, { status: TaskStatus.DONE });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks/status/next_action"] });
+      toast({
+        title: "Task completed",
+        description: "Task has been marked as done",
+      });
+    },
+  });
 
   const handleTaskSubmit = (data: any) => {
     updateTask.mutate(data);
@@ -177,6 +194,7 @@ export default function NextActions() {
             contexts={contexts}
             projects={projects}
             onEdit={handleEditTask}
+            onMarkDone={(taskId) => markTaskDone.mutate(taskId)}
           />
         </TabsContent>
 
@@ -187,6 +205,7 @@ export default function NextActions() {
               contexts={contexts}
               projects={projects}
               onEdit={handleEditTask}
+              onMarkDone={(taskId) => markTaskDone.mutate(taskId)}
             />
           </TabsContent>
         ))}

@@ -34,13 +34,13 @@ const mainNavItems = [
   { href: "/waiting-for", label: "Waiting For", icon: Clock },
   { href: "/calendar", label: "Calendar", icon: Calendar },
   { href: "/projects", label: "Projects", icon: FolderOpen },
-  { href: "/done", label: "Done", icon: CheckCircle2 },
-  { href: "/contexts", label: "Contexts", icon: Tag },
+  { href: "/contexts", label: "Filters", icon: Tag },
 ];
 
 const containerItems = [
   { href: "/reference", label: "Reference", icon: Archive },
   { href: "/incubate", label: "Incubate", icon: Lightbulb },
+  { href: "/done", label: "Done", icon: CheckCircle2 },
   { href: "/trash", label: "Trash", icon: Trash2 },
 ];
 

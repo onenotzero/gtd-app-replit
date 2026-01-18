@@ -13,6 +13,12 @@ This is a Getting Things Done (GTD) task management system built with React, Exp
 - Navigation restructured: "Waiting For" page added to track delegated tasks; Projects moved to bottom of sidebar navigation.
 - **Mobile-responsive layout**: Application now fully supports mobile devices with a responsive navigation system. On screens below 1024px, the sidebar is hidden and replaced with a fixed header containing a hamburger menu that opens a slide-out navigation drawer. Desktop users continue to see the traditional persistent sidebar. All pages use responsive grid layouts that adapt to different screen sizes.
 
+**January 2026 Updates:**
+- Navigation reorganized: "Done" moved to container section (below Incubate), "Contexts" renamed to "Filters"
+- **Inline Project Editing**: Click on any project title to edit it directly without opening a dialog. Press Enter to save or Escape to cancel.
+- **Checkboxes for Completion**: Projects and tasks now have checkboxes to quickly mark them as done. Checking a project sets it to inactive; checking a task moves it to the Done list.
+- **Action Filters Page**: The Contexts page has been transformed into a comprehensive filtering system. Users can filter Next Actions by context, time estimate, energy level, and project. Active filters are displayed as badges and can be cleared individually or all at once. The filtered task list updates in real-time.
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
@@ -37,6 +43,8 @@ The application follows a feature-based organization with reusable UI components
 - **Unified Inbox**: Displays combined task and email items with tasks prioritized over emails, FIFO-sorted within each group. Single "Process" button per item launches ProcessingDialog with context-aware processing.
 - **Calendar Integration**: Google Calendar connected via Replit integration for viewing upcoming events within the next 7 days. Supports both timed and all-day events with proper validation.
 - **Responsive Navigation**: SidebarNav component adapts to screen size using Tailwind's lg breakpoint (1024px). Mobile view (< 1024px) shows a fixed header with hamburger menu that opens a Sheet drawer containing navigation items. Desktop view (≥ 1024px) displays a traditional persistent sidebar. Navigation drawer auto-closes on mobile after page selection for better UX.
+- **Action Filters**: The Filters page (formerly Contexts) provides multi-criteria filtering for Next Actions. Four filter categories: Contexts (with color indicators), Time Available (15min/30min/1hr/2hr+), Energy Level (High/Medium/Low), and Projects. Multiple filters can be combined; each filter shows task count. Active filters appear as removable badges above the filtered task list.
+- **TaskList Component**: Reusable task display component with optional checkboxes for marking tasks done, click-to-edit functionality, and badges showing status/context/project/time/energy attributes.
 
 ### Backend Architecture
 
