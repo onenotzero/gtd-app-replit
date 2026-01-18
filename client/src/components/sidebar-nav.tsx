@@ -23,13 +23,15 @@ import {
   Menu,
   CheckCircle2,
   Tag,
+  Mail,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Task, Email, TaskStatus } from "@shared/schema";
 
 const mainNavItems = [
   { href: "/", label: "Dashboard", icon: Layout },
-  { href: "/inbox", label: "Inbox", icon: Inbox, showCount: true },
+  { href: "/mail", label: "Mail", icon: Mail, showCount: true },
+  { href: "/inbox", label: "GTD Inbox", icon: Inbox, showCount: true },
   { href: "/next-actions", label: "Next Actions", icon: ListTodo },
   { href: "/waiting-for", label: "Waiting For", icon: Clock },
   { href: "/calendar", label: "Calendar", icon: Calendar },
