@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Inbox from "@/pages/inbox";
-import Mail from "@/pages/mail";
 import Projects from "@/pages/projects";
 import NextActions from "@/pages/next-actions";
 import WaitingFor from "@/pages/waiting-for";
@@ -19,16 +18,16 @@ import SidebarNav from "@/components/sidebar-nav";
 
 function Router() {
   const [location] = useLocation();
-  const isMailPage = location === "/mail";
+  const isInboxPage = location === "/inbox";
 
   return (
     <div className="flex h-screen bg-background">
-      <SidebarNav />
-      <main className={`flex-1 overflow-y-auto ${isMailPage ? 'p-0' : 'p-4 md:p-6 lg:p-8'} pt-16 lg:pt-0`}>
+      {/* Hide main sidebar on inbox page - inbox has its own list sidebar */}
+      {!isInboxPage && <SidebarNav />}
+      <main className={`flex-1 overflow-y-auto ${isInboxPage ? '' : 'p-4 md:p-6 lg:p-8 pt-16 lg:pt-8'}`}>
         <Switch>
           <Route path="/" component={Dashboard} />
           <Route path="/inbox" component={Inbox} />
-          <Route path="/mail" component={Mail} />
           <Route path="/projects" component={Projects} />
           <Route path="/next-actions" component={NextActions} />
           <Route path="/waiting-for" component={WaitingFor} />
