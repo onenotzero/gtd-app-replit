@@ -26,9 +26,10 @@ interface TaskListProps {
   contexts?: Context[];
   projects?: Project[];
   onEdit?: (task: Task) => void;
-  onDelete?: (taskId: number) => void;
+  onDelete?: (task: Task) => void;
   onMarkDone?: (taskId: number) => void;
   showCheckbox?: boolean;
+  editButtonText?: string;
 }
 
 export default function TaskList({
@@ -39,8 +40,9 @@ export default function TaskList({
   onDelete,
   onMarkDone,
   showCheckbox = true,
+  editButtonText,
 }: TaskListProps) {
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<Task | null>(null);
 
   const getContextName = (contextId: number | null) => {
     if (!contextId || !contexts) return null;
@@ -96,7 +98,7 @@ export default function TaskList({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setDeleteConfirm(task.id)}
+                    onClick={() => setDeleteConfirm(task)}
                     data-testid="button-delete-task"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -132,7 +134,7 @@ export default function TaskList({
       <AlertDialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete item?</AlertDialogTitle>
+            <AlertDialogTitle>Delete "{deleteConfirm?.title}"?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. The item will be permanently deleted.
             </AlertDialogDescription>
@@ -141,7 +143,7 @@ export default function TaskList({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (deleteConfirm !== null && onDelete) {
+                if (deleteConfirm && onDelete) {
                   onDelete(deleteConfirm);
                   setDeleteConfirm(null);
                 }

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { TaskStatus, TimeEstimate, EnergyLevel, type Project, type Task, type Context, insertProjectSchema, insertTaskSchema } from "@shared/schema";
+import { TaskStatus, TimeEstimate, EnergyLevel, type Project, type Task, type Context, type InsertProject } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +36,32 @@ import TaskList from "@/components/task-list";
 import { Trash2, Check, X } from "lucide-react";
 import { z } from "zod";
 
+// Form schemas
+const projectFormSchema = z.object({
+  name: z.string().min(1),
+  description: z.string(),
+  isActive: z.boolean(),
+});
+
+type ProjectFormValues = z.infer<typeof projectFormSchema>;
+
+const taskEditSchema = z.object({
+  title: z.string().min(1),
+  description: z.string(),
+  status: z.string(),
+  contextId: z.number().nullable(),
+  projectId: z.number().nullable(),
+  timeEstimate: z.string().optional(),
+  energyLevel: z.string().optional(),
+  waitingFor: z.string(),
+  waitingForFollowUp: z.date().nullable(),
+  referenceCategory: z.string(),
+  notes: z.string(),
+  dueDate: z.date().nullable(),
+});
+
+type TaskFormValues = z.infer<typeof taskEditSchema>;
+
 export default function Projects() {
   const { toast } = useToast();
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
@@ -58,8 +84,8 @@ export default function Projects() {
     queryKey: ["/api/contexts"],
   });
 
-  const form = useForm({
-    resolver: zodResolver(insertProjectSchema),
+  const form = useForm<ProjectFormValues>({
+    resolver: zodResolver(projectFormSchema),
     defaultValues: {
       name: "",
       description: "",
@@ -67,15 +93,7 @@ export default function Projects() {
     },
   });
 
-  const taskEditSchema = insertTaskSchema.extend({
-    contextId: z.number().nullable().optional(),
-    projectId: z.number().nullable().optional(),
-    status: z.string().optional(),
-    dueDate: z.coerce.date().nullable().optional(),
-    waitingForFollowUp: z.coerce.date().nullable().optional(),
-  });
-
-  const taskForm = useForm<any>({
+  const taskForm = useForm<TaskFormValues>({
     resolver: zodResolver(taskEditSchema),
     defaultValues: {
       title: "",
@@ -86,10 +104,10 @@ export default function Projects() {
       timeEstimate: undefined,
       energyLevel: undefined,
       waitingFor: "",
+      waitingForFollowUp: null,
       referenceCategory: "",
       notes: "",
-      dueDate: undefined,
-      waitingForFollowUp: undefined,
+      dueDate: null,
     },
   });
 
@@ -101,7 +119,7 @@ export default function Projects() {
   }, [editingProjectId]);
 
   const createProject = useMutation({
-    mutationFn: async (project: any) => {
+    mutationFn: async (project: ProjectFormValues) => {
       const res = await apiRequest("POST", "/api/projects", project);
       return res.json();
     },
@@ -117,7 +135,7 @@ export default function Projects() {
   });
 
   const updateProject = useMutation({
-    mutationFn: async ({ id, ...project }: { id: number; [key: string]: any }) => {
+    mutationFn: async ({ id, ...project }: Partial<ProjectFormValues> & { id: number }) => {
       const res = await apiRequest("PATCH", `/api/projects/${id}`, project);
       return res.json();
     },
@@ -232,17 +250,17 @@ export default function Projects() {
     taskForm.reset({
       title: task.title,
       description: task.description || "",
-      status: task.status as any,
-      contextId: task.contextId as any,
-      projectId: task.projectId as any,
+      status: task.status,
+      contextId: task.contextId,
+      projectId: task.projectId,
       timeEstimate: task.timeEstimate || undefined,
       energyLevel: task.energyLevel || undefined,
       waitingFor: task.waitingFor || "",
-      waitingForFollowUp: task.waitingForFollowUp ? new Date(task.waitingForFollowUp) : undefined,
+      waitingForFollowUp: task.waitingForFollowUp ? new Date(task.waitingForFollowUp) : null,
       referenceCategory: task.referenceCategory || "",
       notes: task.notes || "",
-      dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
-    } as any);
+      dueDate: task.dueDate ? new Date(task.dueDate) : null,
+    });
     setIsTaskEditDialogOpen(true);
   };
 

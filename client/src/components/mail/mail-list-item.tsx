@@ -1,13 +1,8 @@
 import { type Email, type Task } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import { type MailItem } from "@/types/mail";
 import { format, isToday, isYesterday, differenceInMinutes } from "date-fns";
-import { Paperclip, Star, CheckSquare } from "lucide-react";
-
-type MailItem = {
-  id: string;
-  type: "task" | "email";
-  data: Task | Email;
-};
+import { Paperclip, CheckSquare } from "lucide-react";
 
 interface MailListItemProps {
   item: MailItem;

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { type Context, type Task, type Project, TaskStatus, TimeEstimate, EnergyLevel } from "@shared/schema";
+import { type Context, type Task, type Project, type InsertContext, TaskStatus, TimeEstimate, EnergyLevel } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -42,6 +42,8 @@ type ActiveFilter = {
   label: string;
 };
 
+type ContextFormValues = InsertContext;
+
 export default function Contexts() {
   const { toast } = useToast();
   const [isContextDialogOpen, setIsContextDialogOpen] = useState(false);
@@ -69,7 +71,7 @@ export default function Contexts() {
   });
 
   const createContext = useMutation({
-    mutationFn: async (context: any) => {
+    mutationFn: async (context: ContextFormValues) => {
       const res = await apiRequest("POST", "/api/contexts", context);
       return res.json();
     },
@@ -85,7 +87,7 @@ export default function Contexts() {
   });
 
   const updateContext = useMutation({
-    mutationFn: async ({ id, ...context }: { id: number; [key: string]: any }) => {
+    mutationFn: async ({ id, ...context }: ContextFormValues & { id: number }) => {
       const res = await apiRequest("PATCH", `/api/contexts/${id}`, context);
       return res.json();
     },

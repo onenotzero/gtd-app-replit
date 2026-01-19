@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
+import DOMPurify from "dompurify";
 import { type Email, type Task, type Context, type Project, EmailFolder } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { type MailItem, isEmailItem, isTaskItem } from "@/types/mail";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -21,18 +23,10 @@ import {
   Folder,
   Paperclip,
   Download,
-  MoreHorizontal,
   CheckSquare,
   ArrowRight,
-  Star,
 } from "lucide-react";
 import { format } from "date-fns";
-
-type MailItem = {
-  id: string;
-  type: "task" | "email";
-  data: Task | Email;
-};
 
 interface MailPreviewProps {
   item: MailItem | null;
@@ -272,7 +266,7 @@ export default function MailPreview({
         {htmlContent ? (
           <div
             className="prose prose-sm max-w-none"
-            dangerouslySetInnerHTML={{ __html: htmlContent }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(htmlContent) }}
           />
         ) : (
           <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">

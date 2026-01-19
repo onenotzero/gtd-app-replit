@@ -4,6 +4,7 @@ import { Link } from "wouter";
 import { TaskStatus, type Task, type Email, type Context, type Project } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { type MailItem } from "@/types/mail";
 import ProcessingDialog, { type ProcessingResult } from "@/components/processing-dialog";
 import EmailComposer from "@/components/email-composer";
 import MailListItem from "@/components/mail/mail-list-item";
@@ -13,13 +14,6 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { PenSquare, Search, RefreshCw, ChevronLeft, Inbox as InboxIcon } from "lucide-react";
-
-type MailItem = {
-  id: string;
-  type: "task" | "email";
-  data: Task | Email;
-  timestamp: Date;
-};
 
 export default function Inbox() {
   const { toast } = useToast();
