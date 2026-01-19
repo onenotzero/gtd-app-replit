@@ -102,6 +102,18 @@ export const emailAccounts = pgTable("email_accounts", {
   isDefault: boolean("is_default").notNull().default(false),
 });
 
+// Weekly reviews table - tracks GTD weekly review sessions
+export const weeklyReviews = pgTable("weekly_reviews", {
+  id: serial("id").primaryKey(),
+  completedAt: timestamp("completed_at").notNull().defaultNow(),
+  projectsReviewed: integer("projects_reviewed").notNull().default(0),
+  stalledProjectsFound: integer("stalled_projects_found").notNull().default(0),
+  waitingForReviewed: integer("waiting_for_reviewed").notNull().default(0),
+  somedayReviewed: integer("someday_reviewed").notNull().default(0),
+  completedTasksCount: integer("completed_tasks_count").notNull().default(0),
+  notes: text("notes"),
+});
+
 // Helper for nullable date fields - prevents null from being coerced to Unix epoch
 const nullableDate = z.preprocess(
   (val) => (val === null || val === '' || val === undefined ? null : val),
@@ -119,6 +131,9 @@ export const insertEmailSchema = createInsertSchema(emails).omit({ id: true }).e
   receivedAt: z.coerce.date(),
 });
 export const insertEmailAccountSchema = createInsertSchema(emailAccounts).omit({ id: true });
+export const insertWeeklyReviewSchema = createInsertSchema(weeklyReviews).omit({ id: true }).extend({
+  completedAt: z.coerce.date().optional(),
+});
 
 // Update schemas (partial versions for PATCH endpoints)
 export const updateTaskSchema = insertTaskSchema.partial();
@@ -132,8 +147,10 @@ export type Project = typeof projects.$inferSelect;
 export type Context = typeof contexts.$inferSelect;
 export type Email = typeof emails.$inferSelect;
 export type EmailAccount = typeof emailAccounts.$inferSelect;
+export type WeeklyReview = typeof weeklyReviews.$inferSelect;
 export type InsertTask = z.infer<typeof insertTaskSchema>;
 export type InsertProject = z.infer<typeof insertProjectSchema>;
 export type InsertContext = z.infer<typeof insertContextSchema>;
 export type InsertEmail = z.infer<typeof insertEmailSchema>;
 export type InsertEmailAccount = z.infer<typeof insertEmailAccountSchema>;
+export type InsertWeeklyReview = z.infer<typeof insertWeeklyReviewSchema>;

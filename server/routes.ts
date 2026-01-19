@@ -6,6 +6,7 @@ import {
   insertProjectSchema,
   insertContextSchema,
   insertEmailSchema,
+  insertWeeklyReviewSchema,
   updateTaskSchema,
   updateProjectSchema,
   updateContextSchema,
@@ -350,7 +351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ]),
         location: z.string().optional(),
       });
-      
+
       const validatedEvent = calendarEventSchema.parse(req.body);
       const event = await GoogleCalendarService.createEvent(validatedEvent as any);
       res.json(event);
@@ -361,6 +362,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.error('Error creating calendar event:', error);
       res.status(500).json({ message: 'Failed to create event' });
+    }
+  });
+
+  // Weekly Reviews
+  app.get("/api/weekly-reviews", async (req, res) => {
+    try {
+      const reviews = await storage.getWeeklyReviews();
+      res.json(reviews);
+    } catch (error) {
+      console.error('Error fetching weekly reviews:', error);
+      res.status(500).json({ message: 'Failed to fetch weekly reviews' });
+    }
+  });
+
+  app.get("/api/weekly-reviews/latest", async (req, res) => {
+    try {
+      const review = await storage.getLatestWeeklyReview();
+      res.json(review || null);
+    } catch (error) {
+      console.error('Error fetching latest weekly review:', error);
+      res.status(500).json({ message: 'Failed to fetch latest review' });
+    }
+  });
+
+  app.post("/api/weekly-reviews", async (req, res) => {
+    try {
+      const review = insertWeeklyReviewSchema.parse(req.body);
+      const created = await storage.createWeeklyReview(review);
+      res.json(created);
+    } catch (error) {
+      console.error('Error creating weekly review:', error);
+      res.status(500).json({ message: 'Failed to create weekly review' });
     }
   });
 

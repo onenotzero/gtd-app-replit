@@ -1,14 +1,16 @@
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { db } from "./db";
 import {
   Task, InsertTask,
   Project, InsertProject,
   Context, InsertContext,
   Email, InsertEmail,
+  WeeklyReview, InsertWeeklyReview,
   tasks,
   projects,
   contexts,
   emails,
+  weeklyReviews,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -41,6 +43,11 @@ export interface IStorage {
   updateEmail(id: number, email: Partial<Email>): Promise<Email>;
   deleteEmail(id: number): Promise<void>;
   markEmailAsProcessed(id: number): Promise<Email>;
+
+  // Weekly Reviews
+  getWeeklyReviews(): Promise<WeeklyReview[]>;
+  getLatestWeeklyReview(): Promise<WeeklyReview | undefined>;
+  createWeeklyReview(review: InsertWeeklyReview): Promise<WeeklyReview>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -179,6 +186,24 @@ export class DatabaseStorage implements IStorage {
 
     if (!updated) throw new Error("Email not found");
     return updated;
+  }
+
+  // Weekly Reviews
+  async getWeeklyReviews(): Promise<WeeklyReview[]> {
+    return await db.select().from(weeklyReviews).orderBy(desc(weeklyReviews.completedAt));
+  }
+
+  async getLatestWeeklyReview(): Promise<WeeklyReview | undefined> {
+    const [review] = await db.select()
+      .from(weeklyReviews)
+      .orderBy(desc(weeklyReviews.completedAt))
+      .limit(1);
+    return review;
+  }
+
+  async createWeeklyReview(review: InsertWeeklyReview): Promise<WeeklyReview> {
+    const [created] = await db.insert(weeklyReviews).values(review).returning();
+    return created;
   }
 }
 

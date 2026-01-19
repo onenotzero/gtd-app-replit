@@ -14,6 +14,7 @@ import Incubate from "@/pages/incubate";
 import Trash from "@/pages/trash";
 import Done from "@/pages/done";
 import Contexts from "@/pages/contexts";
+import WeeklyReview from "@/pages/weekly-review";
 import SidebarNav from "@/components/sidebar-nav";
 
 function Router() {
@@ -32,6 +33,7 @@ function Router() {
           <Route path="/next-actions" component={NextActions} />
           <Route path="/waiting-for" component={WaitingFor} />
           <Route path="/calendar" component={Calendar} />
+          <Route path="/weekly-review" component={WeeklyReview} />
           <Route path="/done" component={Done} />
           <Route path="/contexts" component={Contexts} />
           <Route path="/reference" component={Reference} />
