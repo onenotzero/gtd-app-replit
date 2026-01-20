@@ -5,29 +5,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Plus, 
-  Inbox, 
-  FolderOpen, 
-  RotateCcw, 
-  PlayCircle, 
-  ChevronDown, 
-  ChevronUp,
-  Check,
-  X,
-  Pencil,
-  Trash2
-} from "lucide-react";
+import { Plus, Inbox, FolderOpen, RotateCcw, PlayCircle, ChevronDown, ChevronUp, Check, X, Pencil, Trash2 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
+import { cn } from "@/lib/utils";
 import { 
   HealthGauge, 
   calculateCaptureHealth, 
   calculateClarifyHealth, 
   calculateOrganizeHealth, 
   calculateReflectHealth, 
-  calculateEngageHealth 
+  calculateEngageHealth,
+  gaugeImages,
+  healthColors
 } from "@/components/health-gauge";
 import { differenceInDays, startOfWeek, isAfter } from "date-fns";
 
@@ -302,14 +293,22 @@ export default function Dashboard() {
                   <p className="text-sm text-muted-foreground">Collect what has your attention</p>
                 </div>
               </div>
-              <div className="flex items-center justify-end gap-2 w-48">
-                <HealthGauge 
-                  level={healthMetrics.capture.level} 
-                  title="Capture" 
-                  metric={healthMetrics.capture.metric}
-                  showLabel
-                />
-                <div className="flex items-center gap-2 w-12 justify-end">
+              <div className="flex items-center gap-6">
+                <div className="flex items-center justify-end gap-3 min-w-[140px]">
+                  {healthMetrics.capture.metric && (
+                    <span className={cn("text-xs font-medium text-right", healthColors[healthMetrics.capture.level])}>
+                      {healthMetrics.capture.metric}
+                    </span>
+                  )}
+                  <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+                    <img 
+                      src={gaugeImages[healthMetrics.capture.level]} 
+                      className="w-5 h-5 object-contain"
+                      alt="Health gauge"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 w-10 justify-end">
                   <Plus className="h-5 w-5 text-muted-foreground" />
                   {showCapture ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                 </div>
@@ -351,14 +350,22 @@ export default function Dashboard() {
                   <p className="text-sm text-muted-foreground">Process what it means</p>
                 </div>
               </div>
-              <div className="flex items-center justify-end gap-2 w-48">
-                <HealthGauge 
-                  level={healthMetrics.clarify.level} 
-                  title="Clarify" 
-                  metric={healthMetrics.clarify.metric}
-                  showLabel
-                />
-                <div className="flex items-center gap-2 w-12 justify-end">
+              <div className="flex items-center gap-6">
+                <div className="flex items-center justify-end gap-3 min-w-[140px]">
+                  {healthMetrics.clarify.metric && (
+                    <span className={cn("text-xs font-medium text-right", healthColors[healthMetrics.clarify.level])}>
+                      {healthMetrics.clarify.metric}
+                    </span>
+                  )}
+                  <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+                    <img 
+                      src={gaugeImages[healthMetrics.clarify.level]} 
+                      className="w-5 h-5 object-contain"
+                      alt="Health gauge"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 w-10 justify-end">
                   <Inbox className="h-5 w-5 text-muted-foreground" />
                 </div>
               </div>
@@ -380,14 +387,22 @@ export default function Dashboard() {
                   <p className="text-sm text-muted-foreground">Put it where it belongs</p>
                 </div>
               </div>
-              <div className="flex items-center justify-end gap-2 w-48">
-                <HealthGauge 
-                  level={healthMetrics.organize.level} 
-                  title="Organize" 
-                  metric={healthMetrics.organize.metric}
-                  showLabel
-                />
-                <div className="flex items-center gap-2 w-12 justify-end">
+              <div className="flex items-center gap-6">
+                <div className="flex items-center justify-end gap-3 min-w-[140px]">
+                  {healthMetrics.organize.metric && (
+                    <span className={cn("text-xs font-medium text-right", healthColors[healthMetrics.organize.level])}>
+                      {healthMetrics.organize.metric}
+                    </span>
+                  )}
+                  <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+                    <img 
+                      src={gaugeImages[healthMetrics.organize.level]} 
+                      className="w-5 h-5 object-contain"
+                      alt="Health gauge"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 w-10 justify-end">
                   <FolderOpen className="h-5 w-5 text-muted-foreground" />
                   {showOrganize ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                 </div>
@@ -555,14 +570,22 @@ export default function Dashboard() {
                   <p className="text-sm text-muted-foreground">Review frequently</p>
                 </div>
               </div>
-              <div className="flex items-center justify-end gap-2 w-48">
-                <HealthGauge 
-                  level={healthMetrics.reflect.level} 
-                  title="Reflect" 
-                  metric={healthMetrics.reflect.metric}
-                  showLabel
-                />
-                <div className="flex items-center gap-2 w-12 justify-end">
+              <div className="flex items-center gap-6">
+                <div className="flex items-center justify-end gap-3 min-w-[140px]">
+                  {healthMetrics.reflect.metric && (
+                    <span className={cn("text-xs font-medium text-right", healthColors[healthMetrics.reflect.level])}>
+                      {healthMetrics.reflect.metric}
+                    </span>
+                  )}
+                  <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+                    <img 
+                      src={gaugeImages[healthMetrics.reflect.level]} 
+                      className="w-5 h-5 object-contain"
+                      alt="Health gauge"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 w-10 justify-end">
                   <RotateCcw className="h-5 w-5 text-muted-foreground" />
                 </div>
               </div>
@@ -581,14 +604,22 @@ export default function Dashboard() {
                   <p className="text-sm text-muted-foreground">Simply do ({nextActions.length} actions ready)</p>
                 </div>
               </div>
-              <div className="flex items-center justify-end gap-2 w-48">
-                <HealthGauge 
-                  level={healthMetrics.engage.level} 
-                  title="Engage" 
-                  metric={healthMetrics.engage.metric}
-                  showLabel
-                />
-                <div className="flex items-center gap-2 w-12 justify-end">
+              <div className="flex items-center gap-6">
+                <div className="flex items-center justify-end gap-3 min-w-[140px]">
+                  {healthMetrics.engage.metric && (
+                    <span className={cn("text-xs font-medium text-right", healthColors[healthMetrics.engage.level])}>
+                      {healthMetrics.engage.metric}
+                    </span>
+                  )}
+                  <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+                    <img 
+                      src={gaugeImages[healthMetrics.engage.level]} 
+                      className="w-5 h-5 object-contain"
+                      alt="Health gauge"
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 w-10 justify-end">
                   <PlayCircle className="h-5 w-5 text-muted-foreground" />
                 </div>
               </div>

@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 export type HealthLevel = 1 | 2 | 3 | 4 | 5;
 
-const gaugeImages: Record<HealthLevel, string> = {
+export const gaugeImages: Record<HealthLevel, string> = {
   1: gauge1Purple,
   2: gauge2Blue,
   3: gauge3Green,
@@ -15,7 +15,7 @@ const gaugeImages: Record<HealthLevel, string> = {
   5: gauge5Red,
 };
 
-const healthLabels: Record<HealthLevel, string> = {
+export const healthLabels: Record<HealthLevel, string> = {
   1: "Excellent",
   2: "Good",
   3: "Healthy",
@@ -23,7 +23,7 @@ const healthLabels: Record<HealthLevel, string> = {
   5: "Review Now",
 };
 
-const healthColors: Record<HealthLevel, string> = {
+export const healthColors: Record<HealthLevel, string> = {
   1: "text-purple-600",
   2: "text-blue-600",
   3: "text-green-600",
