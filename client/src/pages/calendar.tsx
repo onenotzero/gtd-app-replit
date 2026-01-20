@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { SiGoogle } from "react-icons/si";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { format, parseISO, startOfDay, addDays, addMonths, addYears, isSameDay, isToday, isTomorrow, isPast, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, isSameMonth } from "date-fns";
+import { format, parseISO, startOfDay, addDays, addMonths, addYears, isSameDay, isToday, isTomorrow, isPast, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, isSameMonth, differenceInDays } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Task, TaskStatus } from "@shared/schema";
 import { cn } from "@/lib/utils";
@@ -32,6 +32,7 @@ type DayGroup = {
 export default function Calendar() {
   const [view, setView] = useState<CalendarView>("week");
   const [offset, setOffset] = useState(0);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   const { data: connectionStatus, isLoading: isCheckingConnection } = useQuery<{ connected: boolean }>({
     queryKey: ["/api/calendar/status"],
@@ -74,6 +75,15 @@ export default function Calendar() {
     return end 
       ? `${format(start, 'h:mm a')} - ${format(end, 'h:mm a')}`
       : format(start, 'h:mm a');
+  };
+
+  const navigateToDay = (date: Date) => {
+    const today = startOfDay(new Date());
+    const targetDay = startOfDay(date);
+    const dayOffset = differenceInDays(targetDay, today);
+    setView("today");
+    setOffset(dayOffset);
+    setSelectedDate(date);
   };
 
   const getDateRange = () => {
@@ -140,6 +150,18 @@ export default function Calendar() {
   const handleViewChange = (newView: CalendarView) => {
     setView(newView);
     setOffset(0);
+  };
+
+  const getDayData = (date: Date) => {
+    const dayEvents = events.filter(event => {
+      const eventDate = getEventDate(event);
+      return eventDate && isSameDay(eventDate, date);
+    });
+    const dayTasks = tasksWithDueDate.filter(task => {
+      if (!task.dueDate) return false;
+      return isSameDay(new Date(task.dueDate), date);
+    });
+    return { events: dayEvents, tasks: dayTasks };
   };
 
   return (
@@ -233,7 +255,6 @@ export default function Calendar() {
             const monthStart = new Date(rangeStart.getFullYear(), i, 1);
             const monthEnd = endOfMonth(monthStart);
             const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
-            const monthEvents = dayGroups.filter(g => isSameMonth(g.date, monthStart) && hasContent(g));
             
             return (
               <div key={i} className="border rounded-lg p-3">
@@ -246,35 +267,100 @@ export default function Calendar() {
                     <div key={`empty-${idx}`} />
                   ))}
                   {monthDays.map(day => {
-                    const dayData = dayGroups.find(g => isSameDay(g.date, day));
-                    const hasDayContent = dayData && hasContent(dayData);
+                    const dayData = getDayData(day);
+                    const hasDayContent = dayData.events.length > 0 || dayData.tasks.length > 0;
                     return (
-                      <div
+                      <button
                         key={day.toISOString()}
+                        onClick={() => navigateToDay(day)}
                         className={cn(
-                          "text-center py-0.5 rounded text-xs",
-                          isToday(day) && "bg-primary text-primary-foreground font-bold",
+                          "text-center py-0.5 rounded text-xs cursor-pointer hover:bg-accent transition-colors",
+                          isToday(day) && "bg-primary text-primary-foreground font-bold hover:bg-primary/90",
                           hasDayContent && !isToday(day) && "bg-blue-100 dark:bg-blue-900/30"
                         )}
                       >
                         {format(day, 'd')}
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
-                {monthEvents.length > 0 && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    {monthEvents.length} day{monthEvents.length !== 1 ? 's' : ''} with events
-                  </p>
-                )}
               </div>
             );
           })}
         </div>
       )}
 
-      {/* Day/Week/Month View - Vertical List */}
-      {!isCheckingConnection && !isLoadingEvents && view !== "year" && (
+      {/* Month View - Calendar Grid */}
+      {!isCheckingConnection && !isLoadingEvents && view === "month" && (
+        <div className="border rounded-lg overflow-hidden">
+          {/* Weekday Headers */}
+          <div className="grid grid-cols-7 bg-muted/50">
+            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
+              <div key={d} className="text-center text-xs font-medium text-muted-foreground py-2 border-b">
+                {d}
+              </div>
+            ))}
+          </div>
+          {/* Calendar Days */}
+          <div className="grid grid-cols-7">
+            {/* Empty cells for days before month starts */}
+            {Array.from({ length: (rangeStart.getDay() + 6) % 7 }).map((_, idx) => (
+              <div key={`empty-start-${idx}`} className="min-h-[100px] border-b border-r bg-muted/20" />
+            ))}
+            {/* Actual days */}
+            {dayGroups.map((group) => {
+              const isPastDay = isPast(group.date) && !isToday(group.date);
+              return (
+                <button
+                  key={group.date.toISOString()}
+                  onClick={() => navigateToDay(group.date)}
+                  className={cn(
+                    "min-h-[100px] border-b border-r p-2 text-left hover:bg-accent/50 transition-colors cursor-pointer",
+                    isPastDay && "opacity-50"
+                  )}
+                >
+                  <div className={cn(
+                    "text-sm font-medium mb-1 w-7 h-7 flex items-center justify-center rounded-full",
+                    isToday(group.date) && "bg-primary text-primary-foreground"
+                  )}>
+                    {format(group.date, 'd')}
+                  </div>
+                  <div className="space-y-0.5">
+                    {group.events.slice(0, 2).map(event => (
+                      <div
+                        key={event.id}
+                        className="text-xs truncate bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 px-1 py-0.5 rounded"
+                      >
+                        {event.summary}
+                      </div>
+                    ))}
+                    {group.tasks.slice(0, 2).map(task => (
+                      <div
+                        key={task.id}
+                        className="text-xs truncate bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300 px-1 py-0.5 rounded"
+                      >
+                        {task.title}
+                      </div>
+                    ))}
+                    {(group.events.length + group.tasks.length) > 2 && (
+                      <div className="text-xs text-muted-foreground">
+                        +{group.events.length + group.tasks.length - 2} more
+                      </div>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+            {/* Empty cells for days after month ends */}
+            {Array.from({ length: (7 - ((rangeEnd.getDay() + 6) % 7 + 1)) % 7 }).map((_, idx) => (
+              <div key={`empty-end-${idx}`} className="min-h-[100px] border-b border-r bg-muted/20" />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Day/Week View - Vertical List */}
+      {!isCheckingConnection && !isLoadingEvents && (view === "today" || view === "week") && (
         <div className="space-y-0">
           {dayGroups.map((group, index) => {
             const isPastDay = isPast(group.date) && !isToday(group.date);
@@ -380,11 +466,11 @@ export default function Calendar() {
       )}
 
       {/* Empty State */}
-      {!isCheckingConnection && !isLoadingEvents && view !== "year" && dayGroups.every(g => !hasContent(g)) && (
+      {!isCheckingConnection && !isLoadingEvents && (view === "today" || view === "week") && dayGroups.every(g => !hasContent(g)) && (
         <div className="text-center py-12">
           <CalendarIcon className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
           <p className="text-muted-foreground">
-            No events or tasks scheduled {view === "today" ? "today" : view === "week" ? "this week" : "this month"}
+            No events or tasks scheduled {view === "today" ? "today" : "this week"}
           </p>
         </div>
       )}
