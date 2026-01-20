@@ -41,14 +41,14 @@ interface HealthGaugeProps {
 
 export function HealthGauge({ level, title, metric, className, showLabel = false }: HealthGaugeProps) {
   return (
-    <div className={cn("flex items-center gap-1.5 self-center", className)}>
+    <div className={cn("inline-flex items-center gap-1.5 leading-none", className)}>
       <img
         src={gaugeImages[level]}
         alt={`${title} health: ${healthLabels[level]}`}
-        className="w-5 h-5 object-contain block"
+        className="w-5 h-5 object-contain"
       />
       {showLabel && (
-        <span className={cn("text-xs font-medium leading-none", healthColors[level])}>
+        <span className={cn("text-xs font-medium leading-none mb-[1px]", healthColors[level])}>
           {metric}
         </span>
       )}
