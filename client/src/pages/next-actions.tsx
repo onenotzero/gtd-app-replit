@@ -2,21 +2,34 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { TaskStatus, TimeEstimate, EnergyLevel, type Task, type Context, type Project, type InsertContext, insertContextSchema } from "@shared/schema";
 import TaskList from "@/components/task-list";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 
-// Task edit form schema - standalone to avoid type inheritance issues
+const TIME_LABELS = [
+  { value: TimeEstimate.MINUTES_15, label: "15 min" },
+  { value: TimeEstimate.MINUTES_30, label: "30 min" },
+  { value: TimeEstimate.HOUR_1, label: "1 hour" },
+  { value: TimeEstimate.HOURS_2_PLUS, label: "2+ hours" },
+];
+
+const ENERGY_LABELS = [
+  { value: EnergyLevel.HIGH, label: "High Energy" },
+  { value: EnergyLevel.MEDIUM, label: "Medium Energy" },
+  { value: EnergyLevel.LOW, label: "Low Energy" },
+];
+
 const taskEditSchema = z.object({
   title: z.string().min(1),
   description: z.string(),
@@ -36,9 +49,11 @@ type TaskFormValues = z.infer<typeof taskEditSchema>;
 
 export default function NextActions() {
   const [isContextDialogOpen, setIsContextDialogOpen] = useState(false);
-  const [editingContextId, setEditingContextId] = useState<number | null>(null);
   const [isTaskEditDialogOpen, setIsTaskEditDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [selectedContext, setSelectedContext] = useState<number | null>(null);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [selectedEnergy, setSelectedEnergy] = useState<string | null>(null);
   const { toast } = useToast();
 
   const { data: tasks } = useQuery<Task[]>({
@@ -93,13 +108,6 @@ export default function NextActions() {
         description: "New context has been added",
       });
     },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to create context",
-        description: error.message || "An error occurred while creating the context",
-        variant: "destructive",
-      });
-    },
   });
 
   const updateTask = useMutation({
@@ -119,18 +127,22 @@ export default function NextActions() {
         description: "Task has been updated successfully",
       });
     },
-    onError: (error: Error) => {
+  });
+
+  const markTaskDone = useMutation({
+    mutationFn: async (taskId: number) => {
+      const res = await apiRequest("PATCH", `/api/tasks/${taskId}`, { status: TaskStatus.DONE });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks/status/next_action"] });
       toast({
-        title: "Failed to update task",
-        description: error.message || "An error occurred while updating the task",
-        variant: "destructive",
+        title: "Task completed",
+        description: "Task has been marked as done",
       });
     },
   });
-
-  const getTasksByContext = (contextId: number) => {
-    return tasks?.filter((task) => task.contextId === contextId) || [];
-  };
 
   const handleEditTask = (task: Task) => {
     setEditingTask(task);
@@ -151,76 +163,161 @@ export default function NextActions() {
     setIsTaskEditDialogOpen(true);
   };
 
-  const markTaskDone = useMutation({
-    mutationFn: async (taskId: number) => {
-      const res = await apiRequest("PATCH", `/api/tasks/${taskId}`, { status: TaskStatus.DONE });
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/tasks/status/next_action"] });
-      toast({
-        title: "Task completed",
-        description: "Task has been marked as done",
-      });
-    },
-  });
-
   const handleTaskSubmit = (data: any) => {
     updateTask.mutate(data);
   };
 
+  const toggleContext = (contextId: number) => {
+    setSelectedContext(selectedContext === contextId ? null : contextId);
+  };
+
+  const toggleTime = (time: string) => {
+    setSelectedTime(selectedTime === time ? null : time);
+  };
+
+  const toggleEnergy = (energy: string) => {
+    setSelectedEnergy(selectedEnergy === energy ? null : energy);
+  };
+
+  const clearAllFilters = () => {
+    setSelectedContext(null);
+    setSelectedTime(null);
+    setSelectedEnergy(null);
+  };
+
+  const hasActiveFilters = selectedContext !== null || selectedTime !== null || selectedEnergy !== null;
+
+  const filteredTasks = (tasks || []).filter((task) => {
+    if (selectedContext !== null && task.contextId !== selectedContext) return false;
+    if (selectedTime !== null && task.timeEstimate !== selectedTime) return false;
+    if (selectedEnergy !== null && task.energyLevel !== selectedEnergy) return false;
+    return true;
+  });
+
+  const getContextTaskCount = (contextId: number) => {
+    return (tasks || []).filter(t => t.contextId === contextId).length;
+  };
+
+  const getTimeTaskCount = (time: string) => {
+    return (tasks || []).filter(t => t.timeEstimate === time).length;
+  };
+
+  const getEnergyTaskCount = (energy: string) => {
+    return (tasks || []).filter(t => t.energyLevel === energy).length;
+  };
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Next Actions</h2>
         <p className="text-muted-foreground">
-          View and manage your next actions by context
+          {filteredTasks.length} action{filteredTasks.length !== 1 ? 's' : ''} ready to do
         </p>
       </div>
 
-      <Tabs defaultValue="all" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="all">All</TabsTrigger>
-          {contexts?.map((context) => (
-            <TabsTrigger key={context.id} value={context.id.toString()}>
-              {context.name}
-            </TabsTrigger>
+      {/* Filter Rows */}
+      <div className="space-y-3">
+        {/* Contexts Row */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground w-20">Context:</span>
+          {contexts?.map((ctx) => (
+            <Badge
+              key={ctx.id}
+              variant={selectedContext === ctx.id ? "default" : "outline"}
+              className="cursor-pointer hover:bg-accent"
+              style={selectedContext === ctx.id ? {} : { borderColor: ctx.color || undefined }}
+              onClick={() => toggleContext(ctx.id)}
+            >
+              {ctx.name} ({getContextTaskCount(ctx.id)})
+            </Badge>
           ))}
           <Button
             variant="ghost"
             size="sm"
-            className="h-9 px-2"
+            className="h-6 px-2"
             onClick={() => setIsContextDialogOpen(true)}
-            data-testid="button-add-context"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-3 w-3" />
           </Button>
-        </TabsList>
+        </div>
 
-        <TabsContent value="all">
-          <TaskList
-            tasks={tasks || []}
-            contexts={contexts}
-            projects={projects}
-            onEdit={handleEditTask}
-            onMarkDone={(taskId) => markTaskDone.mutate(taskId)}
-          />
-        </TabsContent>
+        {/* Time Row */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground w-20">Time:</span>
+          {TIME_LABELS.map((time) => (
+            <Badge
+              key={time.value}
+              variant={selectedTime === time.value ? "default" : "outline"}
+              className="cursor-pointer hover:bg-accent"
+              onClick={() => toggleTime(time.value)}
+            >
+              {time.label} ({getTimeTaskCount(time.value)})
+            </Badge>
+          ))}
+        </div>
 
-        {contexts?.map((context) => (
-          <TabsContent key={context.id} value={context.id.toString()}>
-            <TaskList
-              tasks={getTasksByContext(context.id)}
-              contexts={contexts}
-              projects={projects}
-              onEdit={handleEditTask}
-              onMarkDone={(taskId) => markTaskDone.mutate(taskId)}
-            />
-          </TabsContent>
-        ))}
-      </Tabs>
+        {/* Energy Row */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground w-20">Energy:</span>
+          {ENERGY_LABELS.map((energy) => (
+            <Badge
+              key={energy.value}
+              variant={selectedEnergy === energy.value ? "default" : "outline"}
+              className="cursor-pointer hover:bg-accent"
+              onClick={() => toggleEnergy(energy.value)}
+            >
+              {energy.label} ({getEnergyTaskCount(energy.value)})
+            </Badge>
+          ))}
+        </div>
+      </div>
 
+      {/* Active Filters */}
+      {hasActiveFilters && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-medium">Active Filters:</span>
+          {selectedContext !== null && (
+            <Badge variant="secondary" className="gap-1">
+              {contexts?.find(c => c.id === selectedContext)?.name}
+              <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedContext(null)} />
+            </Badge>
+          )}
+          {selectedTime !== null && (
+            <Badge variant="secondary" className="gap-1">
+              {TIME_LABELS.find(t => t.value === selectedTime)?.label}
+              <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedTime(null)} />
+            </Badge>
+          )}
+          {selectedEnergy !== null && (
+            <Badge variant="secondary" className="gap-1">
+              {ENERGY_LABELS.find(e => e.value === selectedEnergy)?.label}
+              <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedEnergy(null)} />
+            </Badge>
+          )}
+          <Button variant="ghost" size="sm" onClick={clearAllFilters}>
+            Clear All
+          </Button>
+        </div>
+      )}
+
+      {/* Task List */}
+      {filteredTasks.length > 0 ? (
+        <TaskList
+          tasks={filteredTasks}
+          contexts={contexts}
+          projects={projects}
+          onEdit={handleEditTask}
+          onMarkDone={(taskId) => markTaskDone.mutate(taskId)}
+        />
+      ) : (
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground">
+            {hasActiveFilters ? "No actions match the selected filters" : "No next actions - process your inbox"}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Create Context Dialog */}
       <Dialog open={isContextDialogOpen} onOpenChange={setIsContextDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -269,6 +366,7 @@ export default function NextActions() {
         </DialogContent>
       </Dialog>
 
+      {/* Edit Task Dialog */}
       <Dialog open={isTaskEditDialogOpen} onOpenChange={setIsTaskEditDialogOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
