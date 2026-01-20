@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Calendar as CalendarIcon, Clock, MapPin, ChevronLeft, ChevronRight, Circle, CheckCircle2 } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, MapPin, ChevronLeft, ChevronRight, Circle } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SiGoogle } from "react-icons/si";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { format, parseISO, startOfDay, addDays, isSameDay, isToday, isTomorrow, isPast, startOfWeek, endOfWeek } from "date-fns";
+import { format, parseISO, startOfDay, addDays, addMonths, addYears, isSameDay, isToday, isTomorrow, isPast, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, isSameMonth } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Task, TaskStatus } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+
+type CalendarView = "today" | "week" | "month" | "year";
 
 type CalendarEvent = {
   id: string;
@@ -27,7 +30,8 @@ type DayGroup = {
 };
 
 export default function Calendar() {
-  const [weekOffset, setWeekOffset] = useState(0);
+  const [view, setView] = useState<CalendarView>("week");
+  const [offset, setOffset] = useState(0);
 
   const { data: connectionStatus, isLoading: isCheckingConnection } = useQuery<{ connected: boolean }>({
     queryKey: ["/api/calendar/status"],
@@ -72,14 +76,42 @@ export default function Calendar() {
       : format(start, 'h:mm a');
   };
 
-  const baseDate = addDays(new Date(), weekOffset * 7);
-  const weekStart = startOfWeek(baseDate, { weekStartsOn: 1 });
-  const weekEnd = endOfWeek(baseDate, { weekStartsOn: 1 });
+  const getDateRange = () => {
+    const today = new Date();
+    switch (view) {
+      case "today":
+        const dayDate = addDays(today, offset);
+        return { start: startOfDay(dayDate), end: startOfDay(dayDate) };
+      case "week":
+        const weekBase = addDays(today, offset * 7);
+        return { start: startOfWeek(weekBase, { weekStartsOn: 1 }), end: endOfWeek(weekBase, { weekStartsOn: 1 }) };
+      case "month":
+        const monthBase = addMonths(today, offset);
+        return { start: startOfMonth(monthBase), end: endOfMonth(monthBase) };
+      case "year":
+        const yearBase = addYears(today, offset);
+        return { start: startOfYear(yearBase), end: endOfYear(yearBase) };
+    }
+  };
+
+  const { start: rangeStart, end: rangeEnd } = getDateRange();
+
+  const getHeaderTitle = () => {
+    switch (view) {
+      case "today":
+        return format(rangeStart, 'EEEE, MMMM d, yyyy');
+      case "week":
+        return `${format(rangeStart, 'MMM d')} - ${format(rangeEnd, 'MMM d, yyyy')}`;
+      case "month":
+        return format(rangeStart, 'MMMM yyyy');
+      case "year":
+        return format(rangeStart, 'yyyy');
+    }
+  };
 
   const getDayGroups = (): DayGroup[] => {
-    const days: DayGroup[] = [];
-    for (let i = 0; i < 7; i++) {
-      const date = addDays(weekStart, i);
+    const days = eachDayOfInterval({ start: rangeStart, end: rangeEnd });
+    return days.map(date => {
       const dayEvents = events.filter(event => {
         const eventDate = getEventDate(event);
         return eventDate && isSameDay(eventDate, date);
@@ -88,9 +120,8 @@ export default function Calendar() {
         if (!task.dueDate) return false;
         return isSameDay(new Date(task.dueDate), date);
       });
-      days.push({ date, events: dayEvents, tasks: dayTasks });
-    }
-    return days;
+      return { date, events: dayEvents, tasks: dayTasks };
+    });
   };
 
   const dayGroups = getDayGroups();
@@ -98,18 +129,26 @@ export default function Calendar() {
   const getDayLabel = (date: Date): string => {
     if (isToday(date)) return "Today";
     if (isTomorrow(date)) return "Tomorrow";
+    if (view === "year") return format(date, 'MMM d');
     return format(date, 'EEEE');
   };
 
   const hasContent = (group: DayGroup) => group.events.length > 0 || group.tasks.length > 0;
 
+  const goToToday = () => setOffset(0);
+
+  const handleViewChange = (newView: CalendarView) => {
+    setView(newView);
+    setOffset(0);
+  };
+
   return (
     <div className="max-w-3xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight">
-            {format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d, yyyy')}
+            {getHeaderTitle()}
           </h2>
           <p className="text-sm text-muted-foreground mt-0.5">
             {connectionStatus?.connected ? (
@@ -122,31 +161,44 @@ export default function Calendar() {
             )}
           </p>
         </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setWeekOffset(prev => prev - 1)}
-            className="h-8 w-8"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setWeekOffset(0)}
-            className={cn("h-8 px-3", weekOffset === 0 && "bg-accent")}
-          >
-            Today
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setWeekOffset(prev => prev + 1)}
-            className="h-8 w-8"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
+        <div className="flex items-center gap-2">
+          <Select value={view} onValueChange={(v) => handleViewChange(v as CalendarView)}>
+            <SelectTrigger className="w-28 h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="today">Today</SelectItem>
+              <SelectItem value="week">Week</SelectItem>
+              <SelectItem value="month">Month</SelectItem>
+              <SelectItem value="year">Year</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setOffset(prev => prev - 1)}
+              className="h-8 w-8"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={goToToday}
+              className={cn("h-8 px-3", offset === 0 && "bg-accent")}
+            >
+              Today
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setOffset(prev => prev + 1)}
+              className="h-8 w-8"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -174,8 +226,55 @@ export default function Calendar() {
         </div>
       )}
 
-      {/* Things 3 Style Day List */}
-      {!isCheckingConnection && !isLoadingEvents && (
+      {/* Year View - Compact Monthly Grid */}
+      {!isCheckingConnection && !isLoadingEvents && view === "year" && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 12 }, (_, i) => {
+            const monthStart = new Date(rangeStart.getFullYear(), i, 1);
+            const monthEnd = endOfMonth(monthStart);
+            const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
+            const monthEvents = dayGroups.filter(g => isSameMonth(g.date, monthStart) && hasContent(g));
+            
+            return (
+              <div key={i} className="border rounded-lg p-3">
+                <h3 className="font-semibold text-sm mb-2">{format(monthStart, 'MMMM')}</h3>
+                <div className="grid grid-cols-7 gap-1 text-xs">
+                  {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, idx) => (
+                    <div key={idx} className="text-center text-muted-foreground">{d}</div>
+                  ))}
+                  {Array.from({ length: (monthStart.getDay() + 6) % 7 }).map((_, idx) => (
+                    <div key={`empty-${idx}`} />
+                  ))}
+                  {monthDays.map(day => {
+                    const dayData = dayGroups.find(g => isSameDay(g.date, day));
+                    const hasDayContent = dayData && hasContent(dayData);
+                    return (
+                      <div
+                        key={day.toISOString()}
+                        className={cn(
+                          "text-center py-0.5 rounded text-xs",
+                          isToday(day) && "bg-primary text-primary-foreground font-bold",
+                          hasDayContent && !isToday(day) && "bg-blue-100 dark:bg-blue-900/30"
+                        )}
+                      >
+                        {format(day, 'd')}
+                      </div>
+                    );
+                  })}
+                </div>
+                {monthEvents.length > 0 && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {monthEvents.length} day{monthEvents.length !== 1 ? 's' : ''} with events
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Day/Week/Month View - Vertical List */}
+      {!isCheckingConnection && !isLoadingEvents && view !== "year" && (
         <div className="space-y-0">
           {dayGroups.map((group, index) => {
             const isPastDay = isPast(group.date) && !isToday(group.date);
@@ -281,10 +380,12 @@ export default function Calendar() {
       )}
 
       {/* Empty State */}
-      {!isCheckingConnection && !isLoadingEvents && dayGroups.every(g => !hasContent(g)) && (
+      {!isCheckingConnection && !isLoadingEvents && view !== "year" && dayGroups.every(g => !hasContent(g)) && (
         <div className="text-center py-12">
           <CalendarIcon className="h-12 w-12 mx-auto text-muted-foreground/30 mb-3" />
-          <p className="text-muted-foreground">No events or tasks scheduled this week</p>
+          <p className="text-muted-foreground">
+            No events or tasks scheduled {view === "today" ? "today" : view === "week" ? "this week" : "this month"}
+          </p>
         </div>
       )}
     </div>
