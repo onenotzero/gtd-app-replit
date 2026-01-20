@@ -209,10 +209,10 @@ export default function Inbox() {
         {/* Header with GTD back button */}
         <div className="p-3 border-b">
           <Link href="/">
-            <Button variant="ghost" size="sm" className="gap-2 mb-3 -ml-2 text-muted-foreground hover:text-foreground">
-              <ChevronLeft className="h-4 w-4" />
-              GTD
-            </Button>
+            <div className="flex items-center gap-2 mb-3 -ml-2 group cursor-pointer">
+              <ChevronLeft className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
+              <span className="text-sm font-black bg-primary text-primary-foreground px-2 py-0.5 rounded shadow-sm tracking-tighter">GTD</span>
+            </div>
           </Link>
 
           <div className="flex items-center gap-2 mb-2">
