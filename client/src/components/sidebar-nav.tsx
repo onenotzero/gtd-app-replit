@@ -23,6 +23,7 @@ import {
   Menu,
   CheckCircle2,
   ListChecks,
+  Settings,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Task, Email, TaskStatus } from "@shared/schema";
@@ -114,7 +115,14 @@ export default function SidebarNav() {
     <>
       {/* Mobile Menu Button */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-card border-b px-4 py-3 flex items-center justify-between">
-        <h1 className="text-xl font-black bg-primary text-primary-foreground px-2 py-0.5 rounded shadow-sm">GTD</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-black bg-primary text-primary-foreground px-2 py-0.5 rounded shadow-sm">GTD</h1>
+          <Link href="/settings">
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Settings className="h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" data-testid="button-mobile-menu">
@@ -133,8 +141,15 @@ export default function SidebarNav() {
 
       {/* Desktop Sidebar */}
       <div className="hidden lg:block w-64 border-r bg-card px-3 py-4">
-        <div className="mb-4 px-4">
-          <h1 className="text-2xl font-black bg-primary text-primary-foreground px-3 py-1 rounded inline-block shadow-md tracking-tighter">GTD</h1>
+        <div className="mb-4 px-4 flex items-center justify-between">
+          <Link href="/">
+            <h1 className="text-2xl font-black bg-primary text-primary-foreground px-3 py-1 rounded inline-block shadow-md tracking-tighter cursor-pointer">GTD</h1>
+          </Link>
+          <Link href="/settings">
+            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-secondary">
+              <Settings className="h-5 w-5" />
+            </Button>
+          </Link>
         </div>
         <NavigationContent />
       </div>

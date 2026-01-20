@@ -13,6 +13,7 @@ import Reference from "@/pages/reference";
 import Incubate from "@/pages/incubate";
 import Trash from "@/pages/trash";
 import Done from "@/pages/done";
+import Settings from "@/pages/settings";
 import WeeklyReview from "@/pages/weekly-review";
 import SidebarNav from "@/components/sidebar-nav";
 
@@ -37,6 +38,7 @@ function Router() {
           <Route path="/reference" component={Reference} />
           <Route path="/incubate" component={Incubate} />
           <Route path="/trash" component={Trash} />
+          <Route path="/settings" component={Settings} />
           <Route component={NotFound} />
         </Switch>
       </main>
