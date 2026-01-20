@@ -22,7 +22,6 @@ import {
   Trash2,
   Menu,
   CheckCircle2,
-  Tag,
   ListChecks,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -36,7 +35,6 @@ const mainNavItems = [
   { href: "/calendar", label: "Calendar", icon: Calendar },
   { href: "/weekly-review", label: "Weekly Review", icon: ListChecks },
   { href: "/projects", label: "Projects", icon: FolderOpen },
-  { href: "/contexts", label: "Filters", icon: Tag },
 ];
 
 const containerItems = [

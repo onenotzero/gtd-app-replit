@@ -51,6 +51,7 @@ export default function NextActions() {
   const [isContextDialogOpen, setIsContextDialogOpen] = useState(false);
   const [isTaskEditDialogOpen, setIsTaskEditDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [selectedProject, setSelectedProject] = useState<number | null>(null);
   const [selectedContext, setSelectedContext] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [selectedEnergy, setSelectedEnergy] = useState<string | null>(null);
@@ -180,19 +181,23 @@ export default function NextActions() {
   };
 
   const clearAllFilters = () => {
+    setSelectedProject(null);
     setSelectedContext(null);
     setSelectedTime(null);
     setSelectedEnergy(null);
   };
 
-  const hasActiveFilters = selectedContext !== null || selectedTime !== null || selectedEnergy !== null;
+  const hasActiveFilters = selectedProject !== null || selectedContext !== null || selectedTime !== null || selectedEnergy !== null;
 
   const filteredTasks = (tasks || []).filter((task) => {
+    if (selectedProject !== null && task.projectId !== selectedProject) return false;
     if (selectedContext !== null && task.contextId !== selectedContext) return false;
     if (selectedTime !== null && task.timeEstimate !== selectedTime) return false;
     if (selectedEnergy !== null && task.energyLevel !== selectedEnergy) return false;
     return true;
   });
+
+  const activeProjects = (projects || []).filter(p => p.isActive);
 
   const getContextTaskCount = (contextId: number) => {
     return (tasks || []).filter(t => t.contextId === contextId).length;
@@ -217,6 +222,27 @@ export default function NextActions() {
 
       {/* Filter Rows */}
       <div className="space-y-3">
+        {/* Project Row */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground w-20">Project:</span>
+          <Select 
+            value={selectedProject?.toString() || "all"} 
+            onValueChange={(val) => setSelectedProject(val === "all" ? null : Number(val))}
+          >
+            <SelectTrigger className="w-48 h-8">
+              <SelectValue placeholder="All Projects" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Projects</SelectItem>
+              {activeProjects.map((proj) => (
+                <SelectItem key={proj.id} value={proj.id.toString()}>
+                  {proj.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Contexts Row */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium text-muted-foreground w-20">Context:</span>
@@ -276,6 +302,12 @@ export default function NextActions() {
       {hasActiveFilters && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium">Active Filters:</span>
+          {selectedProject !== null && (
+            <Badge variant="secondary" className="gap-1">
+              {projects?.find(p => p.id === selectedProject)?.name}
+              <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedProject(null)} />
+            </Badge>
+          )}
           {selectedContext !== null && (
             <Badge variant="secondary" className="gap-1">
               {contexts?.find(c => c.id === selectedContext)?.name}
