@@ -287,35 +287,6 @@ export default function Dashboard() {
         <p className="text-muted-foreground">The 5 Steps to Stress-Free Productivity</p>
       </div>
 
-      {/* Health Gauges */}
-      <div className="flex justify-center gap-2 sm:gap-4 py-4 px-2 bg-card rounded-lg border">
-        <HealthGauge 
-          level={healthMetrics.capture.level} 
-          title="Capture" 
-          metric={healthMetrics.capture.metric} 
-        />
-        <HealthGauge 
-          level={healthMetrics.clarify.level} 
-          title="Clarify" 
-          metric={healthMetrics.clarify.metric} 
-        />
-        <HealthGauge 
-          level={healthMetrics.organize.level} 
-          title="Organize" 
-          metric={healthMetrics.organize.metric} 
-        />
-        <HealthGauge 
-          level={healthMetrics.reflect.level} 
-          title="Reflect" 
-          metric={healthMetrics.reflect.metric} 
-        />
-        <HealthGauge 
-          level={healthMetrics.engage.level} 
-          title="Engage" 
-          metric={healthMetrics.engage.metric} 
-        />
-      </div>
-
       <div className="space-y-0">
         {/* Step 1: Capture */}
         <Card className="overflow-hidden mb-0 rounded-b-none">
@@ -332,6 +303,12 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <HealthGauge 
+                  level={healthMetrics.capture.level} 
+                  title="Capture" 
+                  metric={healthMetrics.capture.metric}
+                  showLabel
+                />
                 <Plus className="h-5 w-5 text-muted-foreground" />
                 {showCapture ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
               </div>
@@ -372,7 +349,15 @@ export default function Dashboard() {
                   <p className="text-sm text-muted-foreground">Process what it means</p>
                 </div>
               </div>
-              <Inbox className="h-5 w-5 text-muted-foreground" />
+              <div className="flex items-center gap-2">
+                <HealthGauge 
+                  level={healthMetrics.clarify.level} 
+                  title="Clarify" 
+                  metric={healthMetrics.clarify.metric}
+                  showLabel
+                />
+                <Inbox className="h-5 w-5 text-muted-foreground" />
+              </div>
             </CardHeader>
           </Card>
         </Link>
@@ -392,6 +377,12 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <HealthGauge 
+                  level={healthMetrics.organize.level} 
+                  title="Organize" 
+                  metric={healthMetrics.organize.metric}
+                  showLabel
+                />
                 <FolderOpen className="h-5 w-5 text-muted-foreground" />
                 {showOrganize ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
               </div>
@@ -558,7 +549,15 @@ export default function Dashboard() {
                   <p className="text-sm text-muted-foreground">Review frequently</p>
                 </div>
               </div>
-              <RotateCcw className="h-5 w-5 text-muted-foreground" />
+              <div className="flex items-center gap-2">
+                <HealthGauge 
+                  level={healthMetrics.reflect.level} 
+                  title="Reflect" 
+                  metric={healthMetrics.reflect.metric}
+                  showLabel
+                />
+                <RotateCcw className="h-5 w-5 text-muted-foreground" />
+              </div>
             </CardHeader>
           </Card>
         </Link>
@@ -574,7 +573,15 @@ export default function Dashboard() {
                   <p className="text-sm text-muted-foreground">Simply do ({nextActions.length} actions ready)</p>
                 </div>
               </div>
-              <PlayCircle className="h-5 w-5 text-muted-foreground" />
+              <div className="flex items-center gap-2">
+                <HealthGauge 
+                  level={healthMetrics.engage.level} 
+                  title="Engage" 
+                  metric={healthMetrics.engage.metric}
+                  showLabel
+                />
+                <PlayCircle className="h-5 w-5 text-muted-foreground" />
+              </div>
             </CardHeader>
           </Card>
         </Link>

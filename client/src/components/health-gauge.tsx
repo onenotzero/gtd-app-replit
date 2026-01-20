@@ -36,21 +36,22 @@ interface HealthGaugeProps {
   title: string;
   metric: string;
   className?: string;
+  showLabel?: boolean;
 }
 
-export function HealthGauge({ level, title, metric, className }: HealthGaugeProps) {
+export function HealthGauge({ level, title, metric, className, showLabel = false }: HealthGaugeProps) {
   return (
-    <div className={cn("flex flex-col items-center text-center", className)}>
+    <div className={cn("flex items-center gap-1.5", className)}>
       <img
         src={gaugeImages[level]}
         alt={`${title} health: ${healthLabels[level]}`}
-        className="w-20 h-auto"
+        className="w-5 h-5 object-contain"
       />
-      <p className="text-xs font-medium mt-1">{title}</p>
-      <p className={cn("text-[10px] font-semibold", healthColors[level])}>
-        {healthLabels[level]}
-      </p>
-      <p className="text-[10px] text-muted-foreground">{metric}</p>
+      {showLabel && (
+        <span className={cn("text-xs font-medium", healthColors[level])}>
+          {metric}
+        </span>
+      )}
     </div>
   );
 }
