@@ -233,7 +233,7 @@ export default function Dashboard() {
 
       <div className="space-y-4">
         {/* Step 1: Capture */}
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden mb-0 rounded-b-none">
           <button 
             className="w-full text-left"
             onClick={() => setShowCapture(!showCapture)}
@@ -278,7 +278,7 @@ export default function Dashboard() {
 
         {/* Step 2: Clarify */}
         <Link href="/inbox">
-          <Card className="hover:bg-accent/50 transition-colors cursor-pointer border-b-0 rounded-b-none">
+          <Card className="hover:bg-accent/50 transition-colors cursor-pointer border-t-0 rounded-none mb-0">
             <CardHeader className="flex flex-row items-center justify-between py-4">
               <div className="flex items-center gap-3">
                 <div className="bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center font-bold">2</div>
@@ -293,7 +293,7 @@ export default function Dashboard() {
         </Link>
 
         {/* Step 3: Organize */}
-        <Card className="overflow-hidden rounded-t-none">
+        <Card className="overflow-hidden rounded-t-none border-t-0">
           <button 
             className="w-full text-left"
             onClick={() => setShowOrganize(!showOrganize)}
