@@ -114,7 +114,7 @@ export default function SidebarNav() {
     <>
       {/* Mobile Menu Button */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-card border-b px-4 py-3 flex items-center justify-between">
-        <h1 className="text-xl font-bold">GTD</h1>
+        <h1 className="text-xl font-black bg-primary text-primary-foreground px-2 py-0.5 rounded shadow-sm">GTD</h1>
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" size="icon" data-testid="button-mobile-menu">
@@ -134,7 +134,7 @@ export default function SidebarNav() {
       {/* Desktop Sidebar */}
       <div className="hidden lg:block w-64 border-r bg-card px-3 py-4">
         <div className="mb-4 px-4">
-          <h1 className="text-2xl font-bold">GTD</h1>
+          <h1 className="text-2xl font-black bg-primary text-primary-foreground px-3 py-1 rounded inline-block shadow-md tracking-tighter">GTD</h1>
         </div>
         <NavigationContent />
       </div>
