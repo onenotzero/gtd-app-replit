@@ -238,7 +238,7 @@ export default function Dashboard() {
             className="w-full text-left"
             onClick={() => setShowCapture(!showCapture)}
           >
-            <CardHeader className="flex flex-row items-center justify-between py-4 bg-primary/5 hover:bg-primary/10 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between py-4 hover:bg-accent/50 transition-colors">
               <div className="flex items-center gap-3">
                 <div className="bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center font-bold">1</div>
                 <div>
@@ -278,7 +278,7 @@ export default function Dashboard() {
 
         {/* Step 2: Clarify */}
         <Link href="/inbox">
-          <Card className="hover:bg-accent/50 transition-colors cursor-pointer">
+          <Card className="hover:bg-accent/50 transition-colors cursor-pointer border-b-0 rounded-b-none">
             <CardHeader className="flex flex-row items-center justify-between py-4">
               <div className="flex items-center gap-3">
                 <div className="bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center font-bold">2</div>
@@ -293,12 +293,12 @@ export default function Dashboard() {
         </Link>
 
         {/* Step 3: Organize */}
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden rounded-t-none">
           <button 
             className="w-full text-left"
             onClick={() => setShowOrganize(!showOrganize)}
           >
-            <CardHeader className="flex flex-row items-center justify-between py-4 bg-primary/5 hover:bg-primary/10 transition-colors">
+            <CardHeader className="flex flex-row items-center justify-between py-4 hover:bg-accent/50 transition-colors">
               <div className="flex items-center gap-3">
                 <div className="bg-primary text-primary-foreground rounded-full w-8 h-8 flex items-center justify-center font-bold">3</div>
                 <div>
