@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Task, TaskStatus, Context, Project, TimeEstimate, EnergyLevel, insertContextSchema, insertProjectSchema } from "@shared/schema";
+import { Task, TaskStatus, Context, Project, TimeEstimate, EnergyLevel, insertContextSchema, insertProjectSchema, WeeklyReview as WeeklyReviewType } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,15 @@ import {
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
+import { 
+  HealthGauge, 
+  calculateCaptureHealth, 
+  calculateClarifyHealth, 
+  calculateOrganizeHealth, 
+  calculateReflectHealth, 
+  calculateEngageHealth 
+} from "@/components/health-gauge";
+import { differenceInDays, startOfWeek, isAfter } from "date-fns";
 
 type InsertTask = Omit<Task, 'id'>;
 type InsertContext = typeof insertContextSchema._type;
@@ -64,6 +73,53 @@ export default function Dashboard() {
   const { data: projects = [] } = useQuery<Project[]>({ 
     queryKey: ["/api/projects"],
   });
+
+  const { data: weeklyReviews = [] } = useQuery<WeeklyReviewType[]>({
+    queryKey: ["/api/weekly-reviews"],
+  });
+
+  const healthMetrics = useMemo(() => {
+    const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    
+    const inboxTasks = tasks.filter(t => t.status === TaskStatus.INBOX);
+    const inboxCount = inboxTasks.length;
+    
+    const activeProjectsList = projects.filter(p => p.isActive);
+    const projectsWithNextAction = activeProjectsList.filter(proj => 
+      tasks.some(t => t.projectId === proj.id && t.status === TaskStatus.NEXT_ACTION)
+    ).length;
+    
+    const sortedReviews = [...weeklyReviews].sort((a, b) => 
+      new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
+    );
+    const latestReview = sortedReviews.length > 0 ? sortedReviews[0] : null;
+    const daysSinceReview = latestReview 
+      ? differenceInDays(now, new Date(latestReview.completedAt))
+      : null;
+    
+    const doneTasks = tasks.filter(t => t.status === TaskStatus.DONE);
+    const reviewCompletions = sortedReviews
+      .filter(review => isAfter(new Date(review.completedAt), weekStart))
+      .reduce((acc, review) => acc + review.completedTasksCount, 0);
+    const completedThisWeek = reviewCompletions > 0 
+      ? reviewCompletions 
+      : Math.min(doneTasks.length, 15);
+    
+    const waitingTasks = tasks.filter(t => t.status === TaskStatus.WAITING);
+    const staleWaitingFor = waitingTasks.filter(t => {
+      if (!t.waitingForFollowUp) return false;
+      return new Date(t.waitingForFollowUp) < now;
+    }).length;
+
+    return {
+      capture: calculateCaptureHealth(inboxCount),
+      clarify: calculateClarifyHealth(inboxCount),
+      organize: calculateOrganizeHealth(activeProjectsList.length, projectsWithNextAction),
+      reflect: calculateReflectHealth(daysSinceReview),
+      engage: calculateEngageHealth(completedThisWeek, staleWaitingFor),
+    };
+  }, [tasks, projects, weeklyReviews]);
 
   useEffect(() => {
     if (editingContextId && contextInputRef.current) {
@@ -231,7 +287,36 @@ export default function Dashboard() {
         <p className="text-muted-foreground">The 5 Steps to Stress-Free Productivity</p>
       </div>
 
-      <div className="space-y-4">
+      {/* Health Gauges */}
+      <div className="flex justify-center gap-2 sm:gap-4 py-4 px-2 bg-card rounded-lg border">
+        <HealthGauge 
+          level={healthMetrics.capture.level} 
+          title="Capture" 
+          metric={healthMetrics.capture.metric} 
+        />
+        <HealthGauge 
+          level={healthMetrics.clarify.level} 
+          title="Clarify" 
+          metric={healthMetrics.clarify.metric} 
+        />
+        <HealthGauge 
+          level={healthMetrics.organize.level} 
+          title="Organize" 
+          metric={healthMetrics.organize.metric} 
+        />
+        <HealthGauge 
+          level={healthMetrics.reflect.level} 
+          title="Reflect" 
+          metric={healthMetrics.reflect.metric} 
+        />
+        <HealthGauge 
+          level={healthMetrics.engage.level} 
+          title="Engage" 
+          metric={healthMetrics.engage.metric} 
+        />
+      </div>
+
+      <div className="space-y-0">
         {/* Step 1: Capture */}
         <Card className="overflow-hidden mb-0 rounded-b-none">
           <button 
