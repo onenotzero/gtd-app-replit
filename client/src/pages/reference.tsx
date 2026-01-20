@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { TaskStatus, TimeEstimate, EnergyLevel, type Task, type Context, type Project, insertTaskSchema } from "@shared/schema";
+import { TaskStatus, TimeEstimate, EnergyLevel, type Task, type Context, type Project } from "@shared/schema";
 import TaskList from "@/components/task-list";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -23,9 +23,27 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
+// Task edit form schema
+const taskEditSchema = z.object({
+  title: z.string().min(1),
+  description: z.string(),
+  status: z.string(),
+  contextId: z.number().nullable(),
+  projectId: z.number().nullable(),
+  timeEstimate: z.string().optional(),
+  energyLevel: z.string().optional(),
+  waitingFor: z.string(),
+  waitingForFollowUp: z.date().nullable(),
+  referenceCategory: z.string(),
+  notes: z.string(),
+  dueDate: z.date().nullable(),
+});
+
+type TaskFormValues = z.infer<typeof taskEditSchema>;
+
 export default function Reference() {
   const { toast } = useToast();
-  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<Task | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [isTaskEditDialogOpen, setIsTaskEditDialogOpen] = useState(false);
 
@@ -41,15 +59,7 @@ export default function Reference() {
     queryKey: ["/api/projects"],
   });
 
-  const taskEditSchema = insertTaskSchema.extend({
-    contextId: z.number().nullable().optional(),
-    projectId: z.number().nullable().optional(),
-    status: z.string().optional(),
-    dueDate: z.coerce.date().nullable().optional(),
-    waitingForFollowUp: z.coerce.date().nullable().optional(),
-  });
-
-  const taskForm = useForm({
+  const taskForm = useForm<TaskFormValues>({
     resolver: zodResolver(taskEditSchema),
     defaultValues: {
       title: "",
@@ -60,8 +70,10 @@ export default function Reference() {
       timeEstimate: undefined,
       energyLevel: undefined,
       waitingFor: "",
+      waitingForFollowUp: null,
       referenceCategory: "",
       notes: "",
+      dueDate: null,
     },
   });
 
@@ -111,10 +123,10 @@ export default function Reference() {
       title: task.title,
       description: task.description || "",
       status: task.status,
-      contextId: task.contextId || null,
-      projectId: task.projectId || null,
-      timeEstimate: task.timeEstimate,
-      energyLevel: task.energyLevel,
+      contextId: task.contextId,
+      projectId: task.projectId,
+      timeEstimate: task.timeEstimate || undefined,
+      energyLevel: task.energyLevel || undefined,
       waitingFor: task.waitingFor || "",
       waitingForFollowUp: task.waitingForFollowUp ? new Date(task.waitingForFollowUp) : null,
       referenceCategory: task.referenceCategory || "",
@@ -142,13 +154,13 @@ export default function Reference() {
         contexts={contexts}
         projects={projects}
         onEdit={handleEditTask}
-        onDelete={(id) => setDeleteConfirm(id)}
+        onDelete={(task) => setDeleteConfirm(task)}
       />
 
-      <AlertDialog open={deleteConfirm !== null} onOpenChange={() => deleteConfirm === null || setDeleteConfirm(null)}>
+      <AlertDialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete item?</AlertDialogTitle>
+            <AlertDialogTitle>Delete "{deleteConfirm?.title}"?</AlertDialogTitle>
             <AlertDialogDescription>
               This action cannot be undone. The item will be permanently deleted.
             </AlertDialogDescription>
@@ -157,8 +169,8 @@ export default function Reference() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (deleteConfirm !== null) {
-                  deleteTask.mutate(deleteConfirm);
+                if (deleteConfirm) {
+                  deleteTask.mutate(deleteConfirm.id);
                   setDeleteConfirm(null);
                 }
               }}

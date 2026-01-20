@@ -1,7 +1,17 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertTaskSchema, insertProjectSchema, insertContextSchema, insertEmailSchema } from "@shared/schema";
+import {
+  insertTaskSchema,
+  insertProjectSchema,
+  insertContextSchema,
+  insertEmailSchema,
+  insertWeeklyReviewSchema,
+  updateTaskSchema,
+  updateProjectSchema,
+  updateContextSchema,
+  updateEmailSchema,
+} from "@shared/schema";
 import { EmailService } from "./services/email";
 import * as GoogleCalendarService from "./services/google-calendar";
 import { z } from "zod";
@@ -35,8 +45,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.patch("/api/tasks/:id", async (req, res) => {
-    const task = await storage.updateTask(Number(req.params.id), req.body);
-    res.json(task);
+    try {
+      const updates = updateTaskSchema.parse(req.body);
+      const task = await storage.updateTask(Number(req.params.id), updates);
+      res.json(task);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: 'Invalid task data', errors: error.errors });
+        return;
+      }
+      throw error;
+    }
   });
 
   app.delete("/api/tasks/:id", async (req, res) => {
@@ -57,8 +76,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.patch("/api/projects/:id", async (req, res) => {
-    const project = await storage.updateProject(Number(req.params.id), req.body);
-    res.json(project);
+    try {
+      const updates = updateProjectSchema.parse(req.body);
+      const project = await storage.updateProject(Number(req.params.id), updates);
+      res.json(project);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: 'Invalid project data', errors: error.errors });
+        return;
+      }
+      throw error;
+    }
   });
 
   app.delete("/api/projects/:id", async (req, res) => {
@@ -79,8 +107,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.patch("/api/contexts/:id", async (req, res) => {
-    const context = await storage.updateContext(Number(req.params.id), req.body);
-    res.json(context);
+    try {
+      const updates = updateContextSchema.parse(req.body);
+      const context = await storage.updateContext(Number(req.params.id), updates);
+      res.json(context);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: 'Invalid context data', errors: error.errors });
+        return;
+      }
+      throw error;
+    }
   });
 
   app.delete("/api/contexts/:id", async (req, res) => {
@@ -126,12 +163,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/emails/:id", async (req, res) => {
     try {
-      const email = await storage.updateEmail(Number(req.params.id), req.body);
-      if (req.body.processed) {
+      const updates = updateEmailSchema.parse(req.body);
+      const email = await storage.updateEmail(Number(req.params.id), updates);
+      if (updates.processed) {
         await EmailService.markEmailAsRead(email.messageId);
       }
       res.json(email);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: 'Invalid email data', errors: error.errors });
+        return;
+      }
       console.error('Error updating email:', error);
       res.status(500).json({ message: 'Failed to update email' });
     }
@@ -309,7 +351,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ]),
         location: z.string().optional(),
       });
-      
+
       const validatedEvent = calendarEventSchema.parse(req.body);
       const event = await GoogleCalendarService.createEvent(validatedEvent as any);
       res.json(event);
@@ -320,6 +362,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.error('Error creating calendar event:', error);
       res.status(500).json({ message: 'Failed to create event' });
+    }
+  });
+
+  // Weekly Reviews
+  app.get("/api/weekly-reviews", async (req, res) => {
+    try {
+      const reviews = await storage.getWeeklyReviews();
+      res.json(reviews);
+    } catch (error) {
+      console.error('Error fetching weekly reviews:', error);
+      res.status(500).json({ message: 'Failed to fetch weekly reviews' });
+    }
+  });
+
+  app.get("/api/weekly-reviews/latest", async (req, res) => {
+    try {
+      const review = await storage.getLatestWeeklyReview();
+      res.json(review || null);
+    } catch (error) {
+      console.error('Error fetching latest weekly review:', error);
+      res.status(500).json({ message: 'Failed to fetch latest review' });
+    }
+  });
+
+  app.post("/api/weekly-reviews", async (req, res) => {
+    try {
+      const review = insertWeeklyReviewSchema.parse(req.body);
+      const created = await storage.createWeeklyReview(review);
+      res.json(created);
+    } catch (error) {
+      console.error('Error creating weekly review:', error);
+      res.status(500).json({ message: 'Failed to create weekly review' });
     }
   });
 

@@ -22,7 +22,7 @@ import {
   Trash2,
   Menu,
   CheckCircle2,
-  Tag,
+  ListChecks,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Task, Email, TaskStatus } from "@shared/schema";
@@ -33,14 +33,14 @@ const mainNavItems = [
   { href: "/next-actions", label: "Next Actions", icon: ListTodo },
   { href: "/waiting-for", label: "Waiting For", icon: Clock },
   { href: "/calendar", label: "Calendar", icon: Calendar },
+  { href: "/weekly-review", label: "Weekly Review", icon: ListChecks },
   { href: "/projects", label: "Projects", icon: FolderOpen },
-  { href: "/done", label: "Done", icon: CheckCircle2 },
-  { href: "/contexts", label: "Contexts", icon: Tag },
 ];
 
 const containerItems = [
   { href: "/reference", label: "Reference", icon: Archive },
   { href: "/incubate", label: "Incubate", icon: Lightbulb },
+  { href: "/done", label: "Done", icon: CheckCircle2 },
   { href: "/trash", label: "Trash", icon: Trash2 },
 ];
 

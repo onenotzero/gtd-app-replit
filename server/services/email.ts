@@ -1,20 +1,37 @@
 import * as ImapSimple from 'imap-simple';
-import { simpleParser } from 'mailparser';
+import { simpleParser, AddressObject } from 'mailparser';
 import nodemailer from 'nodemailer';
 import { type InsertEmail, EmailFolder } from '@shared/schema';
 import { storage } from '../storage';
 
+// Helper to extract text from address object
+function getAddressText(addr: AddressObject | AddressObject[] | undefined): string {
+  if (!addr) return '';
+  if (Array.isArray(addr)) return addr.map(a => a.text).join(', ');
+  return addr.text || '';
+}
+
 // Email configuration
-const config = {
-  imap: {
-    user: process.env.EMAIL_ADDRESS?.trim(),
-    password: process.env.EMAIL_PASSWORD?.trim(),
-    host: process.env.IMAP_HOST?.trim(),
-    port: parseInt(process.env.IMAP_PORT || '993'),
-    tls: true,
-    tlsOptions: { rejectUnauthorized: false }
+function getImapConfig(): ImapSimple.ImapSimpleOptions {
+  const user = process.env.EMAIL_ADDRESS?.trim();
+  const password = process.env.EMAIL_PASSWORD?.trim();
+  const host = process.env.IMAP_HOST?.trim();
+
+  if (!user || !password || !host) {
+    throw new Error('Email configuration missing: EMAIL_ADDRESS, EMAIL_PASSWORD, and IMAP_HOST are required');
   }
-};
+
+  return {
+    imap: {
+      user,
+      password,
+      host,
+      port: parseInt(process.env.IMAP_PORT || '993'),
+      tls: true,
+      tlsOptions: { rejectUnauthorized: false }
+    }
+  };
+}
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST?.trim(),
@@ -27,22 +44,38 @@ const transporter = nodemailer.createTransport({
 });
 
 export class EmailService {
-  static async fetchEmails(): Promise<InsertEmail[]> {
+  private static async withConnection<T>(
+    operation: (connection: ImapSimple.ImapSimple) => Promise<T>
+  ): Promise<T> {
+    const config = getImapConfig();
+    const connection = await ImapSimple.connect(config);
     try {
-      console.log('Connecting to email server...');
-      console.log('IMAP Config:', {
-        host: config.imap.host,
-        port: config.imap.port,
-        user: config.imap.user,
-      });
+      return await operation(connection);
+    } finally {
+      try {
+        connection.end();
+      } catch (endError) {
+        console.error('Error closing IMAP connection:', endError);
+      }
+    }
+  }
 
-      const connection = await ImapSimple.connect(config);
+  static async fetchEmails(): Promise<InsertEmail[]> {
+    console.log('Connecting to email server...');
+    const imapConfig = getImapConfig();
+    console.log('IMAP Config:', {
+      host: imapConfig.imap.host,
+      port: imapConfig.imap.port,
+      user: imapConfig.imap.user,
+    });
+
+    return this.withConnection(async (connection) => {
       console.log('Connected to email server');
 
       await connection.openBox('INBOX');
       console.log('Opened INBOX');
 
-      const searchCriteria = ['ALL'];
+      const searchCriteria = ['UNSEEN'];
       const fetchOptions = {
         bodies: [''],
         struct: true,
@@ -50,8 +83,8 @@ export class EmailService {
       };
 
       const messages = await connection.search(searchCriteria, fetchOptions);
-      console.log(`Found ${messages.length} messages`);
-      
+      console.log(`Found ${messages.length} unread messages`);
+
       // Limit to most recent 50 emails
       const recentMessages = messages.slice(-50).reverse();
 
@@ -61,17 +94,22 @@ export class EmailService {
         try {
           const allParts = message.parts.filter((part: any) => part.which === '');
           const bodyPart = allParts.length > 0 ? allParts[0] : message.parts[0];
-          
+
           if (bodyPart && bodyPart.body) {
             const parsed = await simpleParser(bodyPart.body);
+
+            const fromText = getAddressText(parsed.from);
+            const toText = getAddressText(parsed.to);
+            const ccText = getAddressText(parsed.cc);
+            const bccText = getAddressText(parsed.bcc);
 
             const email: InsertEmail = {
               messageId: message.attributes.uid.toString(),
               subject: parsed.subject || 'No Subject',
-              sender: parsed.from?.text || 'Unknown Sender',
-              recipients: parsed.to?.text ? [parsed.to.text] : [],
-              cc: parsed.cc?.text ? [parsed.cc.text] : [],
-              bcc: parsed.bcc?.text ? [parsed.bcc.text] : [],
+              sender: fromText || 'Unknown Sender',
+              recipients: toText ? [toText] : [],
+              cc: ccText ? [ccText] : [],
+              bcc: bccText ? [bccText] : [],
               content: parsed.text || '',
               htmlContent: parsed.html || null,
               folder: EmailFolder.INBOX,
@@ -89,12 +127,8 @@ export class EmailService {
         }
       }
 
-      connection.end();
       return emails;
-    } catch (error) {
-      console.error('Error fetching emails:', error);
-      throw error;
-    }
+    });
   }
 
   static async sendEmail(
@@ -124,45 +158,20 @@ export class EmailService {
   }
 
   static async markEmailAsRead(messageId: string) {
-    try {
-      const connection = await ImapSimple.connect(config);
+    return this.withConnection(async (connection) => {
       await connection.openBox('INBOX');
-
-      const searchCriteria = ['ALL'];
-      const fetchOptions = { bodies: ['HEADER'] };
-      const messages = await connection.search(searchCriteria, fetchOptions);
-
-      const message = messages.find(msg => msg.attributes.uid.toString() === messageId);
-      if (message) {
-        await connection.addFlags(message.attributes.uid, ['\\Seen']);
+      const uid = parseInt(messageId, 10);
+      if (!isNaN(uid)) {
+        await connection.addFlags(uid, ['\\Seen']);
       }
-
-      connection.end();
-    } catch (error) {
-      console.error('Error marking email as read:', error);
-      throw error;
-    }
+    });
   }
 
   static async moveEmailToFolder(messageId: string, targetFolder: string) {
-    try {
-      const connection = await ImapSimple.connect(config);
+    return this.withConnection(async (connection) => {
       await connection.openBox('INBOX');
-
-      const searchCriteria = ['ALL'];
-      const fetchOptions = { bodies: ['HEADER'] };
-      const messages = await connection.search(searchCriteria, fetchOptions);
-
-      const message = messages.find(msg => msg.attributes.uid.toString() === messageId);
-      if (message) {
-        await connection.moveMessage(message.attributes.uid, targetFolder);
-      }
-
-      connection.end();
-    } catch (error) {
-      console.error('Error moving email:', error);
-      throw error;
-    }
+      await connection.moveMessage(messageId, targetFolder);
+    });
   }
 
   static async archiveEmail(messageId: string) {
@@ -170,25 +179,20 @@ export class EmailService {
   }
 
   static async deleteEmail(messageId: string) {
-    try {
-      const connection = await ImapSimple.connect(config);
+    return this.withConnection(async (connection) => {
       await connection.openBox('INBOX');
-
-      const searchCriteria = ['ALL'];
-      const fetchOptions = { bodies: ['HEADER'] };
-      const messages = await connection.search(searchCriteria, fetchOptions);
-
-      const message = messages.find(msg => msg.attributes.uid.toString() === messageId);
-      if (message) {
-        await connection.addFlags(message.attributes.uid, ['\\Deleted']);
-        await connection.expunge();
+      const uid = parseInt(messageId, 10);
+      if (!isNaN(uid)) {
+        await connection.addFlags(uid, ['\\Deleted']);
       }
-
-      connection.end();
-    } catch (error) {
-      console.error('Error deleting email:', error);
-      throw error;
-    }
+      // Use the underlying IMAP connection for expunge
+      await new Promise<void>((resolve, reject) => {
+        (connection as any).imap.expunge((err: Error | null) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+    });
   }
 
   static async replyToEmail(
