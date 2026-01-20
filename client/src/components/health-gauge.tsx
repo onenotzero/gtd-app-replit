@@ -16,11 +16,11 @@ export const gaugeImages: Record<HealthLevel, string> = {
 };
 
 export const healthLabels: Record<HealthLevel, string> = {
-  1: "Excellent",
-  2: "Good",
-  3: "Healthy",
-  4: "Attention",
-  5: "Review Now",
+  1: "Inactive",
+  2: "Excellent",
+  3: "Good",
+  4: "Healthy",
+  5: "Attention",
 };
 
 export const healthColors: Record<HealthLevel, string> = {
@@ -57,7 +57,7 @@ export function HealthGauge({ level, title, metric, className, showLabel = false
 }
 
 export function calculateCaptureHealth(inboxCount: number): { level: HealthLevel; metric: string } {
-  if (inboxCount === 0) return { level: 1, metric: "Inbox clear" };
+  if (inboxCount === 0) return { level: 1, metric: "No items" };
   if (inboxCount <= 5) return { level: 2, metric: `${inboxCount} items` };
   if (inboxCount <= 10) return { level: 3, metric: `${inboxCount} items` };
   if (inboxCount <= 15) return { level: 4, metric: `${inboxCount} items` };
@@ -65,7 +65,7 @@ export function calculateCaptureHealth(inboxCount: number): { level: HealthLevel
 }
 
 export function calculateClarifyHealth(pendingCount: number): { level: HealthLevel; metric: string } {
-  if (pendingCount === 0) return { level: 1, metric: "All processed" };
+  if (pendingCount === 0) return { level: 1, metric: "Inactive" };
   if (pendingCount <= 3) return { level: 2, metric: `${pendingCount} pending` };
   if (pendingCount <= 7) return { level: 3, metric: `${pendingCount} pending` };
   if (pendingCount <= 12) return { level: 4, metric: `${pendingCount} pending` };
@@ -76,11 +76,11 @@ export function calculateOrganizeHealth(
   activeProjects: number,
   projectsWithNextAction: number
 ): { level: HealthLevel; metric: string } {
-  if (activeProjects === 0) return { level: 3, metric: "No projects" };
+  if (activeProjects === 0) return { level: 1, metric: "No projects" };
   const stalled = activeProjects - projectsWithNextAction;
   const ratio = projectsWithNextAction / activeProjects;
   
-  if (ratio === 1) return { level: 1, metric: "All active" };
+  if (ratio === 1) return { level: 2, metric: "All active" };
   if (ratio >= 0.9) return { level: 2, metric: `${stalled} stalled` };
   if (ratio >= 0.7) return { level: 3, metric: `${stalled} stalled` };
   if (ratio >= 0.5) return { level: 4, metric: `${stalled} stalled` };
@@ -88,11 +88,10 @@ export function calculateOrganizeHealth(
 }
 
 export function calculateReflectHealth(daysSinceReview: number | null): { level: HealthLevel; metric: string } {
-  if (daysSinceReview === null) return { level: 5, metric: "Never reviewed" };
-  if (daysSinceReview <= 3) return { level: 1, metric: `${daysSinceReview}d ago` };
-  if (daysSinceReview <= 5) return { level: 2, metric: `${daysSinceReview}d ago` };
-  if (daysSinceReview <= 7) return { level: 3, metric: `${daysSinceReview}d ago` };
-  if (daysSinceReview <= 14) return { level: 4, metric: `${daysSinceReview}d ago` };
+  if (daysSinceReview === null) return { level: 1, metric: "Never reviewed" };
+  if (daysSinceReview <= 3) return { level: 2, metric: `${daysSinceReview}d ago` };
+  if (daysSinceReview <= 5) return { level: 3, metric: `${daysSinceReview}d ago` };
+  if (daysSinceReview <= 7) return { level: 4, metric: `${daysSinceReview}d ago` };
   return { level: 5, metric: `${daysSinceReview}d+ overdue` };
 }
 
@@ -100,9 +99,9 @@ export function calculateEngageHealth(
   completedThisWeek: number,
   waitingForStale: number
 ): { level: HealthLevel; metric: string } {
-  if (completedThisWeek >= 10 && waitingForStale === 0) return { level: 1, metric: `${completedThisWeek} done` };
-  if (completedThisWeek >= 5 && waitingForStale <= 1) return { level: 2, metric: `${completedThisWeek} done` };
-  if (completedThisWeek >= 3) return { level: 3, metric: `${completedThisWeek} done` };
-  if (completedThisWeek >= 1) return { level: 4, metric: `${completedThisWeek} done` };
-  return { level: 5, metric: "No progress" };
+  if (completedThisWeek === 0) return { level: 1, metric: "No progress" };
+  if (completedThisWeek >= 10 && waitingForStale === 0) return { level: 2, metric: `${completedThisWeek} done` };
+  if (completedThisWeek >= 5 && waitingForStale <= 1) return { level: 3, metric: `${completedThisWeek} done` };
+  if (completedThisWeek >= 3) return { level: 4, metric: `${completedThisWeek} done` };
+  return { level: 5, metric: "Needs attention" };
 }
