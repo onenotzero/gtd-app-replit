@@ -13,8 +13,11 @@ import {
   RefreshCw,
   ExternalLink,
   Loader2,
-  Zap
+  Zap,
+  Plus
 } from "lucide-react";
+import { SiGoogle } from "react-icons/si";
+import { BsMicrosoft } from "react-icons/bs";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -166,6 +169,23 @@ export default function Settings() {
               <p className="text-xs text-muted-foreground">
                 Emails are automatically fetched and added to your inbox for processing.
               </p>
+              <Separator className="my-3" />
+              <div>
+                <p className="text-sm font-medium mb-2">Add another email account</p>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="flex-1">
+                    <SiGoogle className="h-4 w-4 mr-2" />
+                    Gmail
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1">
+                    <BsMicrosoft className="h-4 w-4 mr-2" />
+                    Outlook
+                  </Button>
+                  <Button variant="outline" size="icon" className="h-9 w-9">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </>
           ) : (
             <div className="space-y-3">
@@ -233,16 +253,37 @@ export default function Settings() {
               <p className="text-xs text-muted-foreground">
                 Your calendar events are synced and visible in the Calendar view.
               </p>
+              <Separator className="my-3" />
+              <div>
+                <p className="text-sm font-medium mb-2">Add another calendar</p>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="flex-1">
+                    <SiGoogle className="h-4 w-4 mr-2" />
+                    Google
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1">
+                    <BsMicrosoft className="h-4 w-4 mr-2" />
+                    Outlook
+                  </Button>
+                  <Button variant="outline" size="icon" className="h-9 w-9">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </>
           ) : (
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Connect your Google Calendar to view and create events directly from the app.
-              </p>
-              <Button className="w-full">
-                <Calendar className="h-4 w-4 mr-2" />
-                Connect Google Calendar
-              </Button>
+              <p className="text-sm font-medium mb-2">Choose a calendar provider</p>
+              <div className="flex gap-2">
+                <Button className="flex-1">
+                  <SiGoogle className="h-4 w-4 mr-2" />
+                  Google Calendar
+                </Button>
+                <Button variant="outline" className="flex-1">
+                  <BsMicrosoft className="h-4 w-4 mr-2" />
+                  Outlook
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>
