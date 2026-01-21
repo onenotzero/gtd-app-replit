@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, X, ArrowLeft } from "lucide-react";
+import { Plus, X, ArrowLeft, Inbox as InboxIcon, ListTodo } from "lucide-react";
 import { Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -352,8 +352,28 @@ export default function NextActions() {
         />
       ) : (
         <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
-            {hasActiveFilters ? "No actions match the selected filters" : "No next actions - process your inbox"}
+          <CardContent className="py-12 text-center">
+            {hasActiveFilters ? (
+              <>
+                <ListTodo className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                <p className="text-muted-foreground mb-4">No actions match the selected filters</p>
+                <Button variant="outline" onClick={clearAllFilters}>
+                  Clear Filters
+                </Button>
+              </>
+            ) : (
+              <>
+                <InboxIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                <h3 className="text-lg font-medium mb-2">No next actions yet</h3>
+                <p className="text-muted-foreground mb-4">Process items from your inbox to create next actions</p>
+                <Link href="/inbox">
+                  <Button>
+                    <InboxIcon className="h-4 w-4 mr-2" />
+                    Go to Inbox
+                  </Button>
+                </Link>
+              </>
+            )}
           </CardContent>
         </Card>
       )}

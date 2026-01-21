@@ -1,15 +1,14 @@
-import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { 
-  Settings as SettingsIcon, 
-  Mail, 
-  Calendar, 
-  CheckCircle2, 
-  XCircle, 
+import {
+  Settings as SettingsIcon,
+  Mail,
+  Calendar,
+  CheckCircle2,
+  XCircle,
   RefreshCw,
   ExternalLink,
   Loader2,
@@ -32,63 +31,28 @@ interface IntegrationStatus {
   };
 }
 
-export default function Settings() {
-  const { toast } = useToast();
-  const [testingEmail, setTestingEmail] = useState(false);
-  const [testingCalendar, setTestingCalendar] = useState(false);
+interface EmailTestResponse {
+  message: string;
+}
 
-  const { data: status, isLoading, refetch } = useQuery<IntegrationStatus>({
-    queryKey: ["/api/integrations/status"],
-  });
+interface CalendarTestResponse {
+  message: string;
+  eventCount: number;
+}
 
-  const testEmailMutation = useMutation({
-    mutationFn: async () => {
-      setTestingEmail(true);
-      const res = await apiRequest("POST", "/api/integrations/email/test");
-      return res.json();
-    },
-    onSuccess: (data) => {
-      setTestingEmail(false);
-      toast({
-        title: "Email Connected",
-        description: data.message,
-      });
-    },
-    onError: () => {
-      setTestingEmail(false);
-      toast({
-        title: "Connection Failed",
-        description: "Could not connect to email server. Check your credentials.",
-        variant: "destructive",
-      });
-    },
-  });
+// External URLs for integrations
+const EXTERNAL_LINKS = {
+  gmail: "https://accounts.google.com/ServiceLogin?service=mail",
+  outlook: "https://outlook.live.com/",
+  outlookCalendar: "https://outlook.live.com/calendar",
+  googleCalendar: "https://calendar.google.com",
+  replitSecrets: "https://replit.com",
+} as const;
 
-  const testCalendarMutation = useMutation({
-    mutationFn: async () => {
-      setTestingCalendar(true);
-      const res = await apiRequest("POST", "/api/integrations/calendar/test");
-      return res.json();
-    },
-    onSuccess: (data) => {
-      setTestingCalendar(false);
-      toast({
-        title: "Calendar Connected",
-        description: `${data.message}. Found ${data.eventCount} upcoming event(s).`,
-      });
-    },
-    onError: () => {
-      setTestingCalendar(false);
-      toast({
-        title: "Connection Failed",
-        description: "Could not connect to Google Calendar. Try reconnecting.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const StatusBadge = ({ connected }: { connected: boolean }) => (
-    <Badge 
+// Status badge component defined outside to prevent recreation on every render
+function StatusBadge({ connected }: { connected: boolean }) {
+  return (
+    <Badge
       variant={connected ? "default" : "secondary"}
       className={connected ? "bg-green-500 hover:bg-green-600" : ""}
     >
@@ -105,6 +69,54 @@ export default function Settings() {
       )}
     </Badge>
   );
+}
+
+export default function Settings() {
+  const { toast } = useToast();
+
+  const { data: status, isLoading, refetch } = useQuery<IntegrationStatus>({
+    queryKey: ["/api/integrations/status"],
+  });
+
+  const testEmailMutation = useMutation<EmailTestResponse, Error>({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/integrations/email/test");
+      return res.json() as Promise<EmailTestResponse>;
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Email Connected",
+        description: data.message,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Connection Failed",
+        description: "Could not connect to email server. Check your credentials.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const testCalendarMutation = useMutation<CalendarTestResponse, Error>({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/integrations/calendar/test");
+      return res.json() as Promise<CalendarTestResponse>;
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Calendar Connected",
+        description: `${data.message}. Found ${data.eventCount} upcoming event(s).`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Connection Failed",
+        description: "Could not connect to Google Calendar. Try reconnecting.",
+        variant: "destructive",
+      });
+    },
+  });
 
   if (isLoading) {
     return (
@@ -150,13 +162,13 @@ export default function Settings() {
                   <p className="text-sm font-medium">Connected Account</p>
                   <p className="text-sm text-muted-foreground">{status.email.address}</p>
                 </div>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => testEmailMutation.mutate()}
-                  disabled={testingEmail}
+                  disabled={testEmailMutation.isPending}
                 >
-                  {testingEmail ? (
+                  {testEmailMutation.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>
@@ -174,19 +186,19 @@ export default function Settings() {
                 <p className="text-sm font-medium mb-2">Add another email account</p>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" className="flex-1" asChild>
-                    <a href="https://accounts.google.com/ServiceLogin?service=mail" target="_blank" rel="noopener noreferrer">
+                    <a href={EXTERNAL_LINKS.gmail} target="_blank" rel="noopener noreferrer">
                       <SiGoogle className="h-4 w-4 mr-2" />
                       Gmail
                     </a>
                   </Button>
                   <Button variant="outline" size="sm" className="flex-1" asChild>
-                    <a href="https://outlook.live.com/" target="_blank" rel="noopener noreferrer">
+                    <a href={EXTERNAL_LINKS.outlook} target="_blank" rel="noopener noreferrer">
                       <BsMicrosoft className="h-4 w-4 mr-2" />
                       Outlook
                     </a>
                   </Button>
                   <Button variant="outline" size="icon" className="h-9 w-9" asChild>
-                    <a href="https://replit.com" target="_blank" rel="noopener noreferrer">
+                    <a href={EXTERNAL_LINKS.replitSecrets} target="_blank" rel="noopener noreferrer">
                       <Plus className="h-4 w-4" />
                     </a>
                   </Button>
@@ -207,7 +219,7 @@ export default function Settings() {
                 <code className="p-2 bg-muted rounded">SMTP_PORT</code>
               </div>
               <Button variant="outline" size="sm" className="w-full" asChild>
-                <a href="https://replit.com" target="_blank" rel="noopener noreferrer">
+                <a href={EXTERNAL_LINKS.replitSecrets} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-4 w-4 mr-2" />
                   Configure in Secrets Tab
                 </a>
@@ -240,13 +252,13 @@ export default function Settings() {
                   <p className="text-sm font-medium">Provider</p>
                   <p className="text-sm text-muted-foreground">{status.calendar.provider}</p>
                 </div>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => testCalendarMutation.mutate()}
-                  disabled={testingCalendar}
+                  disabled={testCalendarMutation.isPending}
                 >
-                  {testingCalendar ? (
+                  {testCalendarMutation.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>
@@ -260,18 +272,18 @@ export default function Settings() {
                 Your calendar events are synced and visible in the Calendar view.
               </p>
               <Separator className="my-3" />
-              <div>
-                <p className="text-sm font-medium mb-2">Add another calendar</p>
+              <div className="opacity-60">
+                <p className="text-sm font-medium mb-2">Add another calendar (coming soon)</p>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1">
+                  <Button variant="outline" size="sm" className="flex-1" disabled>
                     <SiGoogle className="h-4 w-4 mr-2" />
                     Google
                   </Button>
-                  <Button variant="outline" size="sm" className="flex-1">
+                  <Button variant="outline" size="sm" className="flex-1" disabled>
                     <BsMicrosoft className="h-4 w-4 mr-2" />
                     Outlook
                   </Button>
-                  <Button variant="outline" size="icon" className="h-9 w-9">
+                  <Button variant="outline" size="icon" className="h-9 w-9" disabled>
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
@@ -282,13 +294,13 @@ export default function Settings() {
               <p className="text-sm font-medium mb-2">Choose a calendar provider</p>
               <div className="flex gap-2">
                 <Button className="flex-1" asChild>
-                  <a href="https://calendar.google.com" target="_blank" rel="noopener noreferrer">
+                  <a href={EXTERNAL_LINKS.googleCalendar} target="_blank" rel="noopener noreferrer">
                     <SiGoogle className="h-4 w-4 mr-2" />
                     Google Calendar
                   </a>
                 </Button>
                 <Button variant="outline" className="flex-1" asChild>
-                  <a href="https://outlook.live.com/calendar" target="_blank" rel="noopener noreferrer">
+                  <a href={EXTERNAL_LINKS.outlookCalendar} target="_blank" rel="noopener noreferrer">
                     <BsMicrosoft className="h-4 w-4 mr-2" />
                     Outlook
                   </a>

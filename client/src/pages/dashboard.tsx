@@ -1,30 +1,100 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Task, TaskStatus, Context, Project, TimeEstimate, EnergyLevel, insertContextSchema, insertProjectSchema, WeeklyReview as WeeklyReviewType } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Plus, Inbox, FolderOpen, RotateCcw, PlayCircle, ChevronDown, ChevronUp, Check, X, Pencil, Trash2 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
-import { 
-  HealthGauge, 
-  calculateCaptureHealth, 
-  calculateClarifyHealth, 
-  calculateOrganizeHealth, 
-  calculateReflectHealth, 
+import {
+  HealthGauge,
+  HealthLevel,
+  calculateCaptureHealth,
+  calculateClarifyHealth,
+  calculateOrganizeHealth,
+  calculateReflectHealth,
   calculateEngageHealth,
   gaugeImages,
-  healthColors
+  healthColors,
+  healthLabels
 } from "@/components/health-gauge";
 import { differenceInDays, startOfWeek, isAfter } from "date-fns";
 
 type InsertTask = Omit<Task, 'id'>;
 type InsertContext = typeof insertContextSchema._type;
 type InsertProject = typeof insertProjectSchema._type;
+
+// Reusable component for health metric display with tooltip
+interface HealthDisplayProps {
+  level: HealthLevel;
+  metric: string;
+  tooltip?: string;
+}
+
+function HealthDisplay({ level, metric, tooltip }: HealthDisplayProps) {
+  const content = (
+    <div className="flex items-center justify-end gap-3 min-w-[140px]">
+      {metric && (
+        <span className={cn("text-xs font-medium text-right", healthColors[level])}>
+          {metric}
+        </span>
+      )}
+      <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+        <img
+          src={gaugeImages[level]}
+          className="w-5 h-5 object-contain"
+          alt={`Health: ${healthLabels[level]}`}
+        />
+      </div>
+    </div>
+  );
+
+  if (!tooltip) return content;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="cursor-help">{content}</div>
+      </TooltipTrigger>
+      <TooltipContent side="left" className="max-w-xs">
+        <p className="text-sm">{tooltip}</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+// Tooltip explanations for each GTD step
+const HEALTH_TOOLTIPS = {
+  capture: "Shows how many items are in your inbox. Fewer items means a clearer mind.",
+  clarify: "Process inbox items to decide what they mean and what action is needed.",
+  organize: "Tracks how many of your active projects have a clear next action defined.",
+  reflect: "Weekly reviews keep your system current. Review at least once a week.",
+  engage: "Shows tasks completed this week. Take action on your next actions!",
+};
+
+// Cap for fallback completed count when review data unavailable
+const MAX_FALLBACK_COMPLETED_COUNT = 15;
 
 const TIME_LABELS = [
   { value: TimeEstimate.MINUTES_15, label: "15 min" },
@@ -69,48 +139,57 @@ export default function Dashboard() {
     queryKey: ["/api/weekly-reviews"],
   });
 
-  const healthMetrics = useMemo(() => {
+  // Consolidate all derived data into a single memoized computation
+  const derivedData = useMemo(() => {
     const now = new Date();
     const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-    
+
+    // Filter once, use multiple times
     const inboxTasks = tasks.filter(t => t.status === TaskStatus.INBOX);
+    const nextActions = tasks.filter(t => t.status === TaskStatus.NEXT_ACTION);
+    const waitingTasks = tasks.filter(t => t.status === TaskStatus.WAITING);
+    const doneTasks = tasks.filter(t => t.status === TaskStatus.DONE);
+    const activeProjects = projects.filter(p => p.isActive);
+
     const inboxCount = inboxTasks.length;
-    
-    const activeProjectsList = projects.filter(p => p.isActive);
-    const projectsWithNextAction = activeProjectsList.filter(proj => 
+    const projectsWithNextAction = activeProjects.filter(proj =>
       tasks.some(t => t.projectId === proj.id && t.status === TaskStatus.NEXT_ACTION)
     ).length;
-    
-    const sortedReviews = [...weeklyReviews].sort((a, b) => 
+
+    const sortedReviews = [...weeklyReviews].sort((a, b) =>
       new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
     );
-    const latestReview = sortedReviews.length > 0 ? sortedReviews[0] : null;
-    const daysSinceReview = latestReview 
+    const latestReview = sortedReviews[0] ?? null;
+    const daysSinceReview = latestReview
       ? differenceInDays(now, new Date(latestReview.completedAt))
       : null;
-    
-    const doneTasks = tasks.filter(t => t.status === TaskStatus.DONE);
+
     const reviewCompletions = sortedReviews
       .filter(review => isAfter(new Date(review.completedAt), weekStart))
       .reduce((acc, review) => acc + review.completedTasksCount, 0);
-    const completedThisWeek = reviewCompletions > 0 
-      ? reviewCompletions 
-      : Math.min(doneTasks.length, 15);
-    
-    const waitingTasks = tasks.filter(t => t.status === TaskStatus.WAITING);
+    const completedThisWeek = reviewCompletions > 0
+      ? reviewCompletions
+      : Math.min(doneTasks.length, MAX_FALLBACK_COMPLETED_COUNT);
+
     const staleWaitingFor = waitingTasks.filter(t => {
       if (!t.waitingForFollowUp) return false;
       return new Date(t.waitingForFollowUp) < now;
     }).length;
 
     return {
-      capture: calculateCaptureHealth(inboxCount),
-      clarify: calculateClarifyHealth(inboxCount),
-      organize: calculateOrganizeHealth(activeProjectsList.length, projectsWithNextAction),
-      reflect: calculateReflectHealth(daysSinceReview),
-      engage: calculateEngageHealth(completedThisWeek, staleWaitingFor),
+      nextActions,
+      activeProjects,
+      healthMetrics: {
+        capture: calculateCaptureHealth(inboxCount),
+        clarify: calculateClarifyHealth(inboxCount),
+        organize: calculateOrganizeHealth(activeProjects.length, projectsWithNextAction),
+        reflect: calculateReflectHealth(daysSinceReview),
+        engage: calculateEngageHealth(completedThisWeek, staleWaitingFor),
+      },
     };
   }, [tasks, projects, weeklyReviews]);
+
+  const { nextActions, activeProjects, healthMetrics } = derivedData;
 
   useEffect(() => {
     if (editingContextId && contextInputRef.current) {
@@ -189,6 +268,13 @@ export default function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ["/api/contexts"] });
       toast({ title: "Context deleted" });
     },
+    onError: () => {
+      toast({
+        title: "Failed to delete context",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   const createProject = useMutation({
@@ -222,6 +308,13 @@ export default function Dashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       toast({ title: "Project deleted" });
+    },
+    onError: () => {
+      toast({
+        title: "Failed to delete project",
+        description: "Please try again.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -268,15 +361,13 @@ export default function Dashboard() {
     }
   };
 
-  const activeProjects = projects.filter(p => p.isActive);
-  const nextActions = tasks.filter(t => t.status === TaskStatus.NEXT_ACTION);
-
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
-      <div className="text-center">
-        <h2 className="text-3xl font-bold tracking-tight">Getting Things Done</h2>
-        <p className="text-muted-foreground">The 5 Steps to Stress-Free Productivity</p>
-      </div>
+    <TooltipProvider>
+      <div className="space-y-6 max-w-3xl mx-auto">
+        <div className="text-center">
+          <h2 className="text-3xl font-bold tracking-tight">Getting Things Done</h2>
+          <p className="text-muted-foreground">The 5 Steps to Stress-Free Productivity</p>
+        </div>
 
       <div className="space-y-0">
         {/* Step 1: Capture */}
@@ -294,20 +385,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-6">
-                <div className="flex items-center justify-end gap-3 min-w-[140px]">
-                  {healthMetrics.capture.metric && (
-                    <span className={cn("text-xs font-medium text-right", healthColors[healthMetrics.capture.level])}>
-                      {healthMetrics.capture.metric}
-                    </span>
-                  )}
-                  <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
-                    <img 
-                      src={gaugeImages[healthMetrics.capture.level]} 
-                      className="w-5 h-5 object-contain"
-                      alt="Health gauge"
-                    />
-                  </div>
-                </div>
+                <HealthDisplay level={healthMetrics.capture.level} metric={healthMetrics.capture.metric} tooltip={HEALTH_TOOLTIPS.capture} />
                 <div className="flex items-center gap-2 w-10 justify-end">
                   <Plus className="h-5 w-5 text-muted-foreground" />
                   {showCapture ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
@@ -351,20 +429,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-6">
-                <div className="flex items-center justify-end gap-3 min-w-[140px]">
-                  {healthMetrics.clarify.metric && (
-                    <span className={cn("text-xs font-medium text-right", healthColors[healthMetrics.clarify.level])}>
-                      {healthMetrics.clarify.metric}
-                    </span>
-                  )}
-                  <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
-                    <img 
-                      src={gaugeImages[healthMetrics.clarify.level]} 
-                      className="w-5 h-5 object-contain"
-                      alt="Health gauge"
-                    />
-                  </div>
-                </div>
+                <HealthDisplay level={healthMetrics.clarify.level} metric={healthMetrics.clarify.metric} tooltip={HEALTH_TOOLTIPS.clarify} />
                 <div className="flex items-center gap-2 w-10 justify-end">
                   <Inbox className="h-5 w-5 text-muted-foreground" />
                 </div>
@@ -388,20 +453,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-6">
-                <div className="flex items-center justify-end gap-3 min-w-[140px]">
-                  {healthMetrics.organize.metric && (
-                    <span className={cn("text-xs font-medium text-right", healthColors[healthMetrics.organize.level])}>
-                      {healthMetrics.organize.metric}
-                    </span>
-                  )}
-                  <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
-                    <img 
-                      src={gaugeImages[healthMetrics.organize.level]} 
-                      className="w-5 h-5 object-contain"
-                      alt="Health gauge"
-                    />
-                  </div>
-                </div>
+                <HealthDisplay level={healthMetrics.organize.level} metric={healthMetrics.organize.metric} tooltip={HEALTH_TOOLTIPS.organize} />
                 <div className="flex items-center gap-2 w-10 justify-end">
                   <FolderOpen className="h-5 w-5 text-muted-foreground" />
                   {showOrganize ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
@@ -437,18 +489,39 @@ export default function Dashboard() {
                           </Button>
                         </div>
                       ) : (
-                        <Badge 
-                          variant="secondary" 
+                        <Badge
+                          variant="secondary"
                           className="cursor-pointer hover:bg-secondary/80 group pr-1"
                           style={{ backgroundColor: ctx.color ? `${ctx.color}20` : undefined }}
                         >
                           <span onClick={() => startEditContext(ctx)}>{ctx.name}</span>
-                          <button 
-                            className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => deleteContext.mutate(ctx.id)}
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <button
+                                className="ml-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete context "{ctx.name}"?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will remove the context. Tasks using this context will no longer have it assigned.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteContext.mutate(ctx.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </Badge>
                       )}
                     </div>
@@ -524,20 +597,40 @@ export default function Dashboard() {
                         </div>
                       ) : (
                         <>
-                          <span 
+                          <span
                             className="flex-1 cursor-pointer hover:underline"
                             onClick={() => startEditProject(proj)}
                           >
                             {proj.name}
                           </span>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            className="h-7 w-7 p-0 opacity-0 hover:opacity-100"
-                            onClick={() => deleteProject.mutate(proj.id)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0 opacity-100 lg:opacity-0 lg:hover:opacity-100"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete project "{proj.name}"?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will delete the project. Tasks in this project will no longer be associated with it.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteProject.mutate(proj.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </>
                       )}
                     </div>
@@ -571,20 +664,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-6">
-                <div className="flex items-center justify-end gap-3 min-w-[140px]">
-                  {healthMetrics.reflect.metric && (
-                    <span className={cn("text-xs font-medium text-right", healthColors[healthMetrics.reflect.level])}>
-                      {healthMetrics.reflect.metric}
-                    </span>
-                  )}
-                  <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
-                    <img 
-                      src={gaugeImages[healthMetrics.reflect.level]} 
-                      className="w-5 h-5 object-contain"
-                      alt="Health gauge"
-                    />
-                  </div>
-                </div>
+                <HealthDisplay level={healthMetrics.reflect.level} metric={healthMetrics.reflect.metric} tooltip={HEALTH_TOOLTIPS.reflect} />
                 <div className="flex items-center gap-2 w-10 justify-end">
                   <RotateCcw className="h-5 w-5 text-muted-foreground" />
                 </div>
@@ -605,20 +685,7 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="flex items-center gap-6">
-                <div className="flex items-center justify-end gap-3 min-w-[140px]">
-                  {healthMetrics.engage.metric && (
-                    <span className={cn("text-xs font-medium text-right", healthColors[healthMetrics.engage.level])}>
-                      {healthMetrics.engage.metric}
-                    </span>
-                  )}
-                  <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
-                    <img 
-                      src={gaugeImages[healthMetrics.engage.level]} 
-                      className="w-5 h-5 object-contain"
-                      alt="Health gauge"
-                    />
-                  </div>
-                </div>
+                <HealthDisplay level={healthMetrics.engage.level} metric={healthMetrics.engage.metric} tooltip={HEALTH_TOOLTIPS.engage} />
                 <div className="flex items-center gap-2 w-10 justify-end">
                   <PlayCircle className="h-5 w-5 text-muted-foreground" />
                 </div>
@@ -626,7 +693,8 @@ export default function Dashboard() {
             </CardHeader>
           </Card>
         </Link>
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
