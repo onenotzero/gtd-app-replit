@@ -10,7 +10,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, X } from "lucide-react";
+import { Plus, X, ArrowLeft } from "lucide-react";
+import { Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -213,11 +214,19 @@ export default function NextActions() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Next Actions</h2>
-        <p className="text-muted-foreground">
-          {filteredTasks.length} action{filteredTasks.length !== 1 ? 's' : ''} ready to do
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Next Actions</h2>
+          <p className="text-muted-foreground">
+            {filteredTasks.length} action{filteredTasks.length !== 1 ? 's' : ''} ready to do
+          </p>
+        </div>
+        <Link href="/">
+          <Button variant="ghost" size="sm" className="gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Button>
+        </Link>
       </div>
 
       {/* Filter Rows */}

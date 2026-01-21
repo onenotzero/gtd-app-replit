@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { PenSquare, Search, RefreshCw, ChevronLeft, Inbox as InboxIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function Inbox() {
   const { toast } = useToast();
@@ -203,9 +204,12 @@ export default function Inbox() {
   };
 
   return (
-    <div className="flex h-full">
-      {/* Left sidebar - Item list */}
-      <div className="w-80 border-r flex flex-col bg-card">
+    <div className="flex h-full overflow-hidden">
+      {/* Item list */}
+      <div className={cn(
+        "w-full lg:w-80 border-r flex flex-col bg-card",
+        selectedItem && "hidden lg:flex"
+      )}>
         {/* Header with GTD back button */}
         <div className="p-3 border-b">
           <Link href="/">
@@ -272,8 +276,22 @@ export default function Inbox() {
         </ScrollArea>
       </div>
 
-      {/* Right side - Preview Pane */}
-      <div className="flex-1">
+      {/* Preview Pane - Hidden on mobile unless item selected */}
+      <div className={cn(
+        "flex-1 flex flex-col",
+        !selectedItem && "hidden lg:flex"
+      )}>
+        {selectedItem && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="lg:hidden m-2 self-start gap-2"
+            onClick={() => setSelectedItem(null)}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back to list
+          </Button>
+        )}
         <MailPreview
           item={selectedItem}
           contexts={contexts}

@@ -116,7 +116,9 @@ export default function SidebarNav() {
       {/* Mobile Menu Button */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-card border-b px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h1 className="text-xl font-black bg-primary text-primary-foreground px-2 py-0.5 rounded shadow-sm">GTD</h1>
+          <Link href="/">
+            <h1 className="text-xl font-black bg-primary text-primary-foreground px-2 py-0.5 rounded shadow-sm cursor-pointer tracking-tighter">GTD</h1>
+          </Link>
           <Link href="/settings">
             <Button variant="ghost" size="icon" className="h-8 w-8">
               <Settings className="h-4 w-4" />
