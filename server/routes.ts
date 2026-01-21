@@ -397,6 +397,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Integration Status
+  app.get("/api/integrations/status", async (req, res) => {
+    try {
+      // Check email configuration
+      const emailConfigured = !!(
+        process.env.EMAIL_ADDRESS &&
+        process.env.EMAIL_PASSWORD &&
+        process.env.IMAP_HOST &&
+        process.env.SMTP_HOST
+      );
+
+      // Check Google Calendar connection
+      let calendarConnected = false;
+      try {
+        const calendar = await GoogleCalendarService.getCalendarClient();
+        if (calendar) {
+          calendarConnected = true;
+        }
+      } catch (e) {
+        calendarConnected = false;
+      }
+
+      res.json({
+        email: {
+          configured: emailConfigured,
+          address: emailConfigured ? process.env.EMAIL_ADDRESS : null,
+        },
+        calendar: {
+          connected: calendarConnected,
+          provider: calendarConnected ? 'Google Calendar' : null,
+        },
+      });
+    } catch (error) {
+      console.error('Error checking integration status:', error);
+      res.status(500).json({ message: 'Failed to check integration status' });
+    }
+  });
+
+  // Test email connection
+  app.post("/api/integrations/email/test", async (req, res) => {
+    try {
+      const emailService = new EmailService();
+      await emailService.connect();
+      await emailService.disconnect();
+      res.json({ success: true, message: 'Email connection successful' });
+    } catch (error) {
+      console.error('Email connection test failed:', error);
+      res.status(500).json({ success: false, message: 'Email connection failed' });
+    }
+  });
+
+  // Test calendar connection
+  app.post("/api/integrations/calendar/test", async (req, res) => {
+    try {
+      const events = await GoogleCalendarService.getUpcomingEvents(1);
+      res.json({ success: true, message: 'Calendar connection successful', eventCount: events.length });
+    } catch (error) {
+      console.error('Calendar connection test failed:', error);
+      res.status(500).json({ success: false, message: 'Calendar connection failed' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

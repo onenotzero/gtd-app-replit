@@ -45,6 +45,16 @@ async function getUncachableGoogleCalendarClient() {
   return google.calendar({ version: 'v3', auth: oauth2Client });
 }
 
+// Exported alias for status checking
+export async function getCalendarClient() {
+  return await getUncachableGoogleCalendarClient();
+}
+
+// Alias for routes.ts
+export async function getUpcomingEvents(maxResults: number = 10) {
+  return await listUpcomingEvents(maxResults);
+}
+
 export async function listCalendars() {
   try {
     const calendar = await getUncachableGoogleCalendarClient();
