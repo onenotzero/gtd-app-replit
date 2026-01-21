@@ -438,9 +438,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Test email connection
   app.post("/api/integrations/email/test", async (req, res) => {
     try {
-      const emailService = new EmailService();
-      await emailService.connect();
-      await emailService.disconnect();
+      // Test by fetching emails (which tests IMAP connection)
+      await EmailService.fetchEmails();
       res.json({ success: true, message: 'Email connection successful' });
     } catch (error) {
       console.error('Email connection test failed:', error);
