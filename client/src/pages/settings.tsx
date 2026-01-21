@@ -173,16 +173,22 @@ export default function Settings() {
               <div>
                 <p className="text-sm font-medium mb-2">Add another email account</p>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1">
-                    <SiGoogle className="h-4 w-4 mr-2" />
-                    Gmail
+                  <Button variant="outline" size="sm" className="flex-1" asChild>
+                    <a href="https://accounts.google.com/ServiceLogin?service=mail" target="_blank" rel="noopener noreferrer">
+                      <SiGoogle className="h-4 w-4 mr-2" />
+                      Gmail
+                    </a>
                   </Button>
-                  <Button variant="outline" size="sm" className="flex-1">
-                    <BsMicrosoft className="h-4 w-4 mr-2" />
-                    Outlook
+                  <Button variant="outline" size="sm" className="flex-1" asChild>
+                    <a href="https://outlook.live.com/" target="_blank" rel="noopener noreferrer">
+                      <BsMicrosoft className="h-4 w-4 mr-2" />
+                      Outlook
+                    </a>
                   </Button>
-                  <Button variant="outline" size="icon" className="h-9 w-9">
-                    <Plus className="h-4 w-4" />
+                  <Button variant="outline" size="icon" className="h-9 w-9" asChild>
+                    <a href="https://replit.com" target="_blank" rel="noopener noreferrer">
+                      <Plus className="h-4 w-4" />
+                    </a>
                   </Button>
                 </div>
               </div>
@@ -275,13 +281,17 @@ export default function Settings() {
             <div className="space-y-3">
               <p className="text-sm font-medium mb-2">Choose a calendar provider</p>
               <div className="flex gap-2">
-                <Button className="flex-1">
-                  <SiGoogle className="h-4 w-4 mr-2" />
-                  Google Calendar
+                <Button className="flex-1" asChild>
+                  <a href="https://calendar.google.com" target="_blank" rel="noopener noreferrer">
+                    <SiGoogle className="h-4 w-4 mr-2" />
+                    Google Calendar
+                  </a>
                 </Button>
-                <Button variant="outline" className="flex-1">
-                  <BsMicrosoft className="h-4 w-4 mr-2" />
-                  Outlook
+                <Button variant="outline" className="flex-1" asChild>
+                  <a href="https://outlook.live.com/calendar" target="_blank" rel="noopener noreferrer">
+                    <BsMicrosoft className="h-4 w-4 mr-2" />
+                    Outlook
+                  </a>
                 </Button>
               </div>
             </div>
