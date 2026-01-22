@@ -21,6 +21,9 @@ type CalendarEvent = {
   end?: { dateTime?: string; date?: string };
   location?: string;
   htmlLink?: string;
+  calendarId?: string;
+  calendarSummary?: string;
+  calendarBackgroundColor?: string;
 };
 
 type DayGroup = {
@@ -412,14 +415,28 @@ export default function Calendar() {
                           className="group flex items-start gap-3 py-2 px-3 -mx-3 rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
                           onClick={() => event.htmlLink && window.open(event.htmlLink, '_blank')}
                         >
-                          <div className="flex-shrink-0 w-1 h-full min-h-[40px] bg-blue-500 rounded-full" />
+                          <div 
+                            className="flex-shrink-0 w-1 h-full min-h-[40px] rounded-full" 
+                            style={{ backgroundColor: event.calendarBackgroundColor || '#3b82f6' }}
+                          />
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-sm truncate">{event.summary}</p>
-                            <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+                            <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground flex-wrap">
                               <span className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
                                 {getEventTime(event)}
                               </span>
+                              {event.calendarSummary && (
+                                <span 
+                                  className="px-1.5 py-0.5 rounded text-xs"
+                                  style={{ 
+                                    backgroundColor: `${event.calendarBackgroundColor}20` || '#3b82f620',
+                                    color: event.calendarBackgroundColor || '#3b82f6'
+                                  }}
+                                >
+                                  {event.calendarSummary}
+                                </span>
+                              )}
                               {event.location && (
                                 <span className="flex items-center gap-1 truncate">
                                   <MapPin className="h-3 w-3" />

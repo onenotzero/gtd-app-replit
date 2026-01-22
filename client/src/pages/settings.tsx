@@ -92,8 +92,9 @@ export default function Settings() {
     onError: () => {
       toast({
         title: "Connection Failed",
-        description: "Could not connect to email server. Check your credentials.",
+        description: "Could not connect to email server. For Gmail, you need an App Password (not your regular password). Go to Google Account → Security → 2-Step Verification → App passwords.",
         variant: "destructive",
+        duration: 10000,
       });
     },
   });

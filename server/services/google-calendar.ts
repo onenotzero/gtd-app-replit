@@ -66,23 +66,52 @@ export async function listCalendars() {
   }
 }
 
-export async function listUpcomingEvents(maxResults: number = 10) {
+export async function listUpcomingEvents(maxResults: number = 50) {
   try {
     const calendar = await getUncachableGoogleCalendarClient();
     const now = new Date();
     const sevenDaysLater = new Date();
     sevenDaysLater.setDate(sevenDaysLater.getDate() + 7);
 
-    const response = await calendar.events.list({
-      calendarId: 'primary',
-      timeMin: now.toISOString(),
-      timeMax: sevenDaysLater.toISOString(),
-      maxResults: maxResults,
-      singleEvents: true,
-      orderBy: 'startTime',
+    // Get all calendars the user has access to
+    const calendarsResponse = await calendar.calendarList.list();
+    const calendars = calendarsResponse.data.items || [];
+    
+    // Fetch events from all calendars in parallel
+    const eventPromises = calendars.map(async (cal) => {
+      try {
+        const response = await calendar.events.list({
+          calendarId: cal.id!,
+          timeMin: now.toISOString(),
+          timeMax: sevenDaysLater.toISOString(),
+          maxResults: maxResults,
+          singleEvents: true,
+          orderBy: 'startTime',
+        });
+        // Add calendar info to each event for display
+        return (response.data.items || []).map(event => ({
+          ...event,
+          calendarId: cal.id,
+          calendarSummary: cal.summary,
+          calendarBackgroundColor: cal.backgroundColor,
+        }));
+      } catch (err) {
+        console.warn(`Could not fetch events from calendar ${cal.id}:`, err);
+        return [];
+      }
     });
 
-    return response.data.items || [];
+    const allEventsArrays = await Promise.all(eventPromises);
+    const allEvents = allEventsArrays.flat();
+    
+    // Sort all events by start time
+    allEvents.sort((a, b) => {
+      const aStart = a.start?.dateTime || a.start?.date || '';
+      const bStart = b.start?.dateTime || b.start?.date || '';
+      return aStart.localeCompare(bStart);
+    });
+
+    return allEvents.slice(0, maxResults);
   } catch (error) {
     console.error('Error listing events:', error);
     throw error;
